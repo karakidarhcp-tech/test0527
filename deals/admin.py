@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Customer, Deal
+from .models import Customer, Deal, DealActivity
 
 
 @admin.register(Customer)
@@ -15,3 +15,9 @@ class DealAdmin(admin.ModelAdmin):
     list_filter = ("phase", "owner")
     search_fields = ("title", "customer__name", "description")
     autocomplete_fields = ("customer",)
+
+
+@admin.register(DealActivity)
+class DealActivityAdmin(admin.ModelAdmin):
+    list_display = ("deal", "kind", "user", "created_at")
+    list_filter = ("kind",)

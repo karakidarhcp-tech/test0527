@@ -14,6 +14,33 @@
 </section>
 
 <section class="card">
+  <h2>月別受注額 <small class="muted">直近12か月 ・ 合計 {{ year_total|yen }}</small></h2>
+  <div class="mchart" role="img" aria-label="直近12か月の月別受注額。詳細は下の表を参照">
+    <div class="mchart-y" aria-hidden="true">
+      {% for t in month_ticks %}<span>{{ t|man_yen }}</span>{% endfor %}<span>0</span>
+    </div>
+    <div class="mchart-plot">
+      <div class="mchart-grid" aria-hidden="true">{% for t in month_ticks %}<i></i>{% endfor %}<i></i></div>
+      {% for x in months %}
+      <a class="mchart-col" href="{% url 'deal_list' %}?phase=won" tabindex="0">
+        <span class="mchart-bar" style="height: {{ x.pct }}%"></span>
+        <span class="mchart-tip"><b>{{ x.month|date:"Y年n月" }}</b><br>{{ x.total|yen }}<br>{{ x.count }}件</span>
+      </a>
+      {% endfor %}
+    </div>
+    <div></div>
+    <div class="mchart-x" aria-hidden="true">{% for x in months %}<span>{% if x.month.month == 1 or forloop.first %}{{ x.month|date:"y/" }}{% endif %}{{ x.month.month }}月</span>{% endfor %}</div>
+  </div>
+  <details class="table-toggle">
+    <summary>表で見る</summary>
+    <table class="table compact">
+      <thead><tr><th>月</th><th class="num">受注額</th><th class="num">件数</th></tr></thead>
+      <tbody>{% for x in months %}<tr><td>{{ x.month|date:"Y年n月" }}</td><td class="num">{{ x.total|yen }}</td><td class="num">{{ x.count }}</td></tr>{% endfor %}</tbody>
+    </table>
+  </details>
+</section>
+
+<section class="card">
   <h2>フェーズ別</h2>
   <table class="phase-table">
     <thead><tr><th>フェーズ</th><th class="num">件数</th><th class="num">金額</th><th class="bar-col"></th></tr></thead>

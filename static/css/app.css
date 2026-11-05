@@ -125,9 +125,52 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); o
 .login-box p { text-align: center; margin-top: -8px; }
 
 @media (max-width: 720px) {
-  .topbar { padding: 0 12px; gap: 12px; height: auto; min-height: 52px; flex-wrap: wrap; }
+  .topbar { padding: 8px 12px 0; gap: 8px 12px; height: auto; flex-wrap: wrap; }
+  .brand { order: 1; }
+  .usermenu { order: 2; margin-left: auto; }
+  .mainnav { order: 3; flex-basis: 100%; padding-bottom: 6px; }
+  .kpis { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi { padding: 14px; }
+  .kpi-value { font-size: 18px; }
   .container { padding: 16px; }
   .grid2 { grid-template-columns: 1fr; }
   .dl { grid-template-columns: 1fr; gap: 2px; }
   .dl dd { margin-bottom: 10px; }
 }
+
+/* ---- 月別受注額チャート ---- */
+.mchart { display: grid; grid-template-columns: auto 1fr; grid-template-rows: 200px auto; column-gap: 8px; }
+.mchart-y { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end;
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; margin: -7px 0; white-space: nowrap; }
+.mchart-plot { position: relative; display: flex; align-items: flex-end; gap: 2px; border-bottom: 1px solid var(--border); }
+.mchart-grid { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
+.mchart-grid i { display: block; border-top: 1px dashed var(--border); }
+.mchart-grid i:last-child { border: 0; }
+.mchart-col { position: relative; flex: 1; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
+.mchart-col:hover, .mchart-col:focus-visible { background: color-mix(in srgb, var(--text) 5%, transparent); outline: none; }
+.mchart-bar { width: min(60%, 36px); background: var(--primary); border-radius: 4px 4px 0 0; min-height: 0; }
+.mchart-tip { position: absolute; bottom: calc(100% - 8px); left: 50%; transform: translateX(-50%); z-index: 2;
+  display: none; padding: 6px 10px; border-radius: 6px; background: var(--text); color: var(--surface);
+  font-size: 12px; line-height: 1.5; white-space: nowrap; pointer-events: none; }
+.mchart-col:first-child .mchart-tip { left: 0; transform: none; }
+.mchart-col:last-child .mchart-tip { left: auto; right: 0; transform: none; }
+.mchart-col:hover .mchart-tip, .mchart-col:focus-visible .mchart-tip { display: block; }
+.mchart-x { display: flex; gap: 2px; font-size: 11px; color: var(--muted); padding-top: 4px; }
+.mchart-x span { flex: 1 1 0; min-width: 0; text-align: center; white-space: nowrap; }
+.table-toggle { margin-top: 12px; }
+.table-toggle summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+
+/* ---- 活動履歴 ---- */
+.comment-form { margin-bottom: 20px; }
+.comment-form .field { margin-bottom: 8px; }
+.timeline { list-style: none; margin: 0; padding: 0; }
+.tl-item { border-left: 2px solid var(--border); padding: 0 0 16px 16px; position: relative; }
+.tl-item::before { content: ""; position: absolute; left: -6px; top: 6px; width: 10px; height: 10px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--muted); }
+.tl-comment::before { border-color: var(--primary); background: var(--primary); }
+.tl-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; font-size: 13px; }
+.tl-kind { font-size: 11px; padding: 0 6px; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); }
+.tl-del { margin-left: auto; }
+.tl-body { margin-top: 2px; }
+.tl-changed .tl-body { color: var(--muted); font-size: 13px; }
+@media (max-width: 720px) { .mchart-x span:nth-child(even) { visibility: hidden; } }

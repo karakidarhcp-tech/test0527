@@ -7,6 +7,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.core.paginator import Paginator
 from django.db.models import Count, F, ProtectedError, Q, Sum
+from django.db.models.functions import TruncMonth
+from django.views.decorators.http import require_POST
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
@@ -15,11 +17,29 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, U
 
 from accounts.utils import display_name
 
-from .forms import CustomerForm, DealForm, DealSearchForm
-from .models import Customer, Deal
+from .forms import CommentForm, CustomerForm, DealForm, DealSearchForm, describe_changes
+from .models import Customer, Deal, DealActivity
 
 
 # ---------- ダッシュボード ----------
+
+# 上限の先頭桁 → 目盛り分割数（目盛り間隔が 1, 2, 5 系の切りの良い値になる組み合わせ）
+_NICE_STEPS = ((1, 5), (2, 4), (2.5, 5), (5, 5), (10, 5))
+
+
+def nice_scale(value):
+    """グラフ軸の (上限, 分割数) を返す。上限は 1, 2, 2.5, 5 ×10^n に切り上げる"""
+    if value <= 0:
+        return 0, 0
+    mag = 10 ** (len(str(int(value))) - 1)
+    for step, divisions in _NICE_STEPS:
+        if value <= step * mag:
+            return int(step * mag), divisions
+    return int(10 * mag), 5
+
+
+def nice_ceiling(value):
+    return nice_scale(value)[0]
 
 @login_required
 def dashboard(request):
@@ -50,7 +70,28 @@ def dashboard(request):
     won_count = won_this_month.count()
     closed_count = closed_this_month.count()
 
+    # 直近12か月の受注額（クローズ日ベース）
+    first_month = month_start
+    for _ in range(11):
+        first_month = (first_month - timedelta(days=1)).replace(day=1)
+    monthly = {
+        r["m"]: r for r in Deal.objects.filter(phase=Deal.Phase.WON, closed_date__gte=first_month)
+        .annotate(m=TruncMonth("closed_date")).values("m").annotate(total=Sum("amount"), n=Count("id"))
+    }
+    months, m = [], first_month
+    while m <= month_start:
+        r = monthly.get(m, {})
+        months.append({"month": m, "total": r.get("total") or 0, "count": r.get("n", 0)})
+        m = (m + timedelta(days=32)).replace(day=1)
+    month_max = max([x["total"] for x in months] + [0])
+    scale_max, divisions = nice_scale(month_max)
+    for x in months:
+        x["pct"] = round(x["total"] * 100 / scale_max, 1) if scale_max else 0
+
     context = {
+        "months": months,
+        "month_ticks": [scale_max * i // divisions for i in range(divisions, 0, -1)],
+        "year_total": sum(x["total"] for x in months),
         "today": today,
         "open_count": open_deals.count(),
         "pipeline_total": pipeline_total,
@@ -138,6 +179,39 @@ class DealDetailView(LoginRequiredMixin, DetailView):
     model = Deal
     queryset = Deal.objects.select_related("customer", "owner", "created_by")
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["activities"] = self.object.activities.select_related("user")
+        ctx["comment_form"] = kwargs.get("comment_form") or CommentForm()
+        return ctx
+
+
+@login_required
+@require_POST
+def deal_add_comment(request, pk):
+    deal = get_object_or_404(Deal, pk=pk)
+    form = CommentForm(request.POST)
+    if form.is_valid():
+        DealActivity.objects.create(deal=deal, user=request.user, kind=DealActivity.Kind.COMMENT,
+                                    body=form.cleaned_data["body"])
+        deal.save(update_fields=["updated_at"])
+        messages.success(request, "コメントを追加しました。")
+        return redirect(deal)
+    view = DealDetailView(request=request, kwargs={"pk": pk}, object=deal)
+    return render(request, "deals/deal_detail.html", view.get_context_data(comment_form=form))
+
+
+@login_required
+@require_POST
+def activity_delete(request, pk):
+    act = get_object_or_404(DealActivity, pk=pk, kind=DealActivity.Kind.COMMENT)
+    if not (request.user.is_staff or request.user == act.user):
+        messages.error(request, "このコメントは削除できません。")
+    else:
+        act.delete()
+        messages.success(request, "コメントを削除しました。")
+    return redirect(act.deal)
+
 
 class DealCreateView(LoginRequiredMixin, CreateView):
     model = Deal
@@ -151,8 +225,11 @@ class DealCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+        response = super().form_valid(form)
+        DealActivity.objects.create(deal=self.object, user=self.request.user,
+                                    kind=DealActivity.Kind.CREATED, body="案件を作成")
         messages.success(self.request, "案件を登録しました。")
-        return super().form_valid(form)
+        return response
 
 
 class DealUpdateView(LoginRequiredMixin, UpdateView):
@@ -160,8 +237,15 @@ class DealUpdateView(LoginRequiredMixin, UpdateView):
     form_class = DealForm
 
     def form_valid(self, form):
+        original = Deal.objects.get(pk=self.object.pk)
+        old = {name: getattr(original, name) for name in form.fields}
+        response = super().form_valid(form)
+        body = describe_changes(form, old)
+        if body:
+            DealActivity.objects.create(deal=self.object, user=self.request.user,
+                                        kind=DealActivity.Kind.CHANGED, body=body)
         messages.success(self.request, "案件を更新しました。")
-        return super().form_valid(form)
+        return response
 
 
 class DealDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):

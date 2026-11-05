@@ -17,6 +17,17 @@ def yen(value):
         return "-"
 
 
+@register.filter
+def man_yen(value):
+    """グラフ軸用の短い表記（万円/億円）"""
+    v = int(value or 0)
+    if v >= 100_000_000:
+        return f"{v / 100_000_000:g}億"
+    if v >= 10_000:
+        return f"{v // 10_000:,}万"
+    return f"{v:,}"
+
+
 @register.simple_tag
 def phase_badge(deal_or_value, label=None):
     value = getattr(deal_or_value, "phase", deal_or_value)

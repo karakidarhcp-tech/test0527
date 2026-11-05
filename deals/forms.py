@@ -68,3 +68,39 @@ class DealSearchForm(forms.Form):
         ("-amount", "金額(大きい順)"),
         ("-probability", "確度(高い順)"),
     ])
+
+
+class CommentForm(forms.Form):
+    body = forms.CharField(label="コメント", max_length=2000,
+                           widget=forms.Textarea(attrs={"rows": 3, "placeholder": "商談メモ・やり取りを記録"}))
+
+
+def describe_changes(form, old):
+    """保存前の値 old と保存後のインスタンスを比べ「項目: 旧 → 新」の行に整形する
+    (フェーズ変更による確度の自動設定なども拾えるよう、フォーム入力ではなく保存結果で比較)"""
+    lines = []
+    for name, field in form.fields.items():
+        before, after = old.get(name), getattr(form.instance, name)
+        if before == after:
+            continue
+        if name == "description":
+            lines.append(f"{field.label}を更新")
+            continue
+        lines.append(f"{field.label}: {_fmt(name, before)} → {_fmt(name, after)}")
+    return "\n".join(lines)
+
+
+def _fmt(name, value):
+    if value in (None, ""):
+        return "(なし)"
+    if name == "phase":
+        return Deal.Phase(value).label
+    if name == "owner":
+        return display_name(value)
+    if name == "amount":
+        return f"¥{int(value):,}"
+    if name == "probability":
+        return f"{value}%"
+    if hasattr(value, "strftime"):
+        return value.strftime("%Y/%m/%d")
+    return str(value)

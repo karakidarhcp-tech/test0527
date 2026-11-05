@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from deals.models import Customer, Deal
+from deals.models import Customer, Deal, DealActivity
 
 User = get_user_model()
 
@@ -19,10 +19,14 @@ class Command(BaseCommand):
     help = "デモ用のユーザー・顧客・案件を作成します(開発環境向け)"
 
     def add_arguments(self, parser):
-        parser.add_argument("--deals", type=int, default=40)
+        parser.add_argument("--deals", type=int, default=60)
+        parser.add_argument("--reset", action="store_true", help="既存の案件・顧客を削除してから作成")
 
     def handle(self, *args, **opts):
         random.seed(42)
+        if opts["reset"]:
+            Deal.objects.all().delete()
+            Customer.objects.all().delete()
         admin, created = User.objects.get_or_create(
             username="admin", defaults={"is_staff": True, "is_superuser": True,
                                         "last_name": "管理", "first_name": "太郎"})
@@ -43,10 +47,13 @@ class Command(BaseCommand):
         phases = [p for p, _ in Deal.Phase.choices]
         for i in range(opts["deals"]):
             phase = random.choices(phases, weights=[3, 3, 3, 2, 2, 1])[0]
-            Deal.objects.create(
+            closed = today - timedelta(days=random.randint(0, 330)) if phase in Deal.CLOSED_PHASES else None
+            owner = random.choice(users)
+            deal = Deal.objects.create(
+                closed_date=closed,
                 title=f"{random.choice(TITLES)} {i + 1:03d}",
                 customer=random.choice(customers),
-                owner=random.choice(users),
+                owner=owner,
                 created_by=admin,
                 phase=phase,
                 amount=random.randrange(50, 3000) * 10000,
@@ -54,5 +61,11 @@ class Command(BaseCommand):
                 expected_close_date=today + timedelta(days=random.randint(-30, 90)),
                 description="デモデータ",
             )
+            DealActivity.objects.create(deal=deal, user=admin, kind=DealActivity.Kind.CREATED, body="案件を作成")
+            if random.random() < 0.5:
+                DealActivity.objects.create(deal=deal, user=owner, kind=DealActivity.Kind.COMMENT,
+                                            body=random.choice(["初回訪問。予算感をヒアリング。",
+                                                                "見積書を送付済み。来週回答予定。",
+                                                                "先方の決裁者と面談。前向きな反応。"]))
         self.stdout.write(self.style.SUCCESS(
             f"作成完了: 案件 {opts['deals']}件 / ログイン admin / admin12345（一般: sato, suzuki, tanaka / demo12345）"))

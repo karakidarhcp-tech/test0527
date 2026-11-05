@@ -24,4 +24,29 @@
     <dt>最終更新</dt><dd class="muted">{{ deal.updated_at|date:"Y/m/d H:i" }}</dd>
   </dl>
 </div>
+
+<section class="card">
+  <h2>活動履歴</h2>
+  <form method="post" action="{% url 'deal_add_comment' deal.pk %}" class="comment-form">{% csrf_token %}
+    {% with form=comment_form %}{% include "includes/form_fields.html" %}{% endwith %}
+    <button class="btn primary" type="submit">コメントを追加</button>
+  </form>
+  <ol class="timeline">
+  {% for a in activities %}
+    <li class="tl-item tl-{{ a.kind }}">
+      <div class="tl-head">
+        <span class="tl-kind">{{ a.get_kind_display }}</span>
+        <strong>{{ a.user|display_name }}</strong>
+        <span class="muted">{{ a.created_at|date:"Y/m/d H:i" }}</span>
+        {% if a.kind == "comment" %}{% if user.is_staff or user == a.user %}
+        <form method="post" action="{% url 'activity_delete' a.pk %}" class="tl-del" onsubmit="return confirm('このコメントを削除しますか？')">{% csrf_token %}<button class="linkbtn" type="submit">削除</button></form>
+        {% endif %}{% endif %}
+      </div>
+      <div class="tl-body pre">{{ a.body }}</div>
+    </li>
+  {% empty %}
+    <li class="muted">まだ履歴はありません。</li>
+  {% endfor %}
+  </ol>
+</section>
 {% endblock %}

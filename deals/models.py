@@ -107,3 +107,28 @@ class Deal(models.Model):
         else:
             self.closed_date = None
         super().save(*args, **kwargs)
+
+
+class DealActivity(models.Model):
+    """案件の活動履歴（コメント・変更履歴）"""
+
+    class Kind(models.TextChoices):
+        CREATED = "created", "作成"
+        CHANGED = "changed", "変更"
+        COMMENT = "comment", "コメント"
+
+    deal = models.ForeignKey(Deal, verbose_name="案件", on_delete=models.CASCADE, related_name="activities")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, verbose_name="ユーザー", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    kind = models.CharField("種別", max_length=20, choices=Kind.choices)
+    body = models.TextField("内容")
+    created_at = models.DateTimeField("日時", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "活動履歴"
+        verbose_name_plural = "活動履歴"
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.deal} / {self.get_kind_display()}"
