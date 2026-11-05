@@ -52,6 +52,16 @@ python manage.py seed_demo
 python manage.py test
 ```
 
+## Google Cloud へのデプロイ
+
+Cloud Run + Cloud SQL (PostgreSQL) で公開する手順を **[docs/deploy-gcp.md](docs/deploy-gcp.md)** にまとめています。
+ブラウザ（Cloud Shell）だけで、次の2コマンドで構築・公開できます。
+
+```bash
+./deploy/gcp/setup.sh    # 初回のみ: DB・シークレット・権限などを作成
+./deploy/gcp/deploy.sh   # 毎回: ビルド → DBマイグレーション → 公開
+```
+
 ## 本番運用時の設定
 
 環境変数で設定します。
@@ -61,8 +71,10 @@ python manage.py test
 | `DJANGO_SECRET_KEY` | 必須。ランダムな長い文字列 |
 | `DJANGO_DEBUG` | `0` にする |
 | `DJANGO_ALLOWED_HOSTS` | 公開するホスト名（カンマ区切り） |
+| `DJANGO_CSRF_TRUSTED_ORIGINS` | 公開するURL（例: `https://anken.example.co.jp`） |
+| `DB_NAME` / `DB_USER` / `DB_PASSWORD` / `DB_HOST` / `DB_PORT` | 設定すると PostgreSQL を使用（未設定なら SQLite） |
 
-静的ファイルは `python manage.py collectstatic` で `staticfiles/` に集約し、Nginx 等から配信してください。アプリサーバーには gunicorn 等を利用します。
+`Dockerfile` で本番用コンテナ（gunicorn + WhiteNoise による静的ファイル配信）を作成できます。死活監視用に `/healthz` を用意しています。
 
 Django 標準の管理画面は `/admin/` で利用できます（スーパーユーザーのみ）。
 
@@ -74,4 +86,6 @@ accounts/    ログイン、ユーザー管理、プロフィール
 deals/       顧客・案件モデル、ダッシュボード、一覧/検索/CSV
 templates/   画面テンプレート
 static/css/  スタイル（ライト/ダークモード対応）
+deploy/gcp/  Google Cloud 構築・デプロイスクリプト
+docs/        運用ドキュメント
 ```

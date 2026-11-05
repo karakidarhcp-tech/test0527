@@ -1,0 +1,10 @@
+# Cloud Build にアップロードしないファイル
+.git
+.gitignore
+.venv/
+__pycache__/
+*.pyc
+db.sqlite3
+staticfiles/
+.env
+deploy/gcp/config.env
