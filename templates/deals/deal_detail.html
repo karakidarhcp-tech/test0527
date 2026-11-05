@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}{{ deal.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'deal_list' %}">案件一覧</a> ›</p>
+<div class="pagehead">
+  <h1>{{ deal.title }} {% phase_badge deal %}</h1>
+  <div>
+    <a class="btn primary" href="{% url 'deal_update' deal.pk %}">編集</a>
+    {% if user.is_staff or user == deal.owner or user == deal.created_by %}
+    <a class="btn danger" href="{% url 'deal_delete' deal.pk %}">削除</a>
+    {% endif %}
+  </div>
+</div>
+<div class="card">
+  <dl class="dl">
+    <dt>顧客</dt><dd><a href="{{ deal.customer.get_absolute_url }}">{{ deal.customer.name }}</a></dd>
+    <dt>担当者</dt><dd>{{ deal.owner|display_name }}</dd>
+    <dt>見込み金額</dt><dd>{{ deal.amount|yen }}</dd>
+    <dt>確度</dt><dd>{{ deal.probability }}%（加重 {{ deal.weighted_amount|yen }}）</dd>
+    <dt>受注予定日</dt><dd class="{% if deal.is_overdue %}overdue{% endif %}">{{ deal.expected_close_date|date:"Y年n月j日"|default:"未設定" }}{% if deal.is_overdue %}（期限切れ）{% endif %}</dd>
+    {% if deal.closed_date %}<dt>クローズ日</dt><dd>{{ deal.closed_date|date:"Y年n月j日" }}</dd>{% endif %}
+    <dt>内容・メモ</dt><dd class="pre">{{ deal.description|default:"-" }}</dd>
+    <dt>作成</dt><dd class="muted">{{ deal.created_at|date:"Y/m/d H:i" }}（{{ deal.created_by|display_name }}）</dd>
+    <dt>最終更新</dt><dd class="muted">{{ deal.updated_at|date:"Y/m/d H:i" }}</dd>
+  </dl>
+</div>
+{% endblock %}

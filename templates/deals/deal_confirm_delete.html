@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}案件の削除{% endblock %}
+{% block content %}
+<h1>案件の削除</h1>
+<form method="post" class="card">{% csrf_token %}
+  <p>案件「<strong>{{ object.title }}</strong>」を削除します。この操作は取り消せません。</p>
+  <div class="actions">
+    <button class="btn danger" type="submit">削除する</button>
+    <a class="btn" href="{{ object.get_absolute_url }}">キャンセル</a>
+  </div>
+</form>
+{% endblock %}

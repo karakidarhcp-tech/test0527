@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}ユーザーの編集{% else %}ユーザーの追加{% endif %}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'user_list' %}">ユーザー管理</a> ›</p>
+<h1>{% if object %}ユーザーの編集: {{ object.username }}{% else %}ユーザーの追加{% endif %}</h1>
+<form method="post" class="card form">{% csrf_token %}
+  {% include "includes/form_fields.html" %}
+  <div class="actions">
+    <button class="btn primary" type="submit">保存</button>
+    <a class="btn" href="{% url 'user_list' %}">キャンセル</a>
+  </div>
+</form>
+{% endblock %}

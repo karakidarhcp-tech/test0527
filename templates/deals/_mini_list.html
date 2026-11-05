@@ -1,0 +1,17 @@
+{% load deal_tags %}
+{% if deals %}
+<table class="table compact">
+  <thead><tr><th>案件</th><th>顧客</th><th>フェーズ</th><th class="num">金額</th><th>受注予定日</th></tr></thead>
+  <tbody>
+  {% for d in deals %}
+  <tr>
+    <td><a href="{{ d.get_absolute_url }}">{{ d.title }}</a></td>
+    <td>{{ d.customer.name }}</td>
+    <td>{% phase_badge d %}</td>
+    <td class="num">{{ d.amount|yen }}</td>
+    <td class="{% if warn or d.is_overdue %}overdue{% endif %}">{{ d.expected_close_date|date:"Y/m/d"|default:"-" }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<p class="muted">{{ empty }}</p>{% endif %}

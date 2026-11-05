@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}{{ customer.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'customer_list' %}">顧客一覧</a> ›</p>
+<div class="pagehead">
+  <h1>{{ customer.name }}</h1>
+  <div>
+    <a class="btn primary" href="{% url 'deal_create' %}?customer={{ customer.pk }}">＋ この顧客の案件を登録</a>
+    <a class="btn" href="{% url 'customer_update' customer.pk %}">編集</a>
+    {% if user.is_staff %}<a class="btn danger" href="{% url 'customer_delete' customer.pk %}">削除</a>{% endif %}
+  </div>
+</div>
+<div class="card">
+  <dl class="dl">
+    <dt>担当者名</dt><dd>{{ customer.contact_person|default:"-" }}</dd>
+    <dt>メール</dt><dd>{% if customer.email %}<a href="mailto:{{ customer.email }}">{{ customer.email }}</a>{% else %}-{% endif %}</dd>
+    <dt>電話番号</dt><dd>{{ customer.phone|default:"-" }}</dd>
+    <dt>住所</dt><dd>{{ customer.address|default:"-" }}</dd>
+    <dt>備考</dt><dd class="pre">{{ customer.notes|default:"-" }}</dd>
+  </dl>
+</div>
+<section class="card">
+  <h2>案件（{{ deals|length }}件）</h2>
+  {% if deals %}
+  <table class="table compact">
+    <thead><tr><th>案件名</th><th>担当者</th><th>フェーズ</th><th class="num">金額</th><th>受注予定日</th></tr></thead>
+    <tbody>
+    {% for d in deals %}
+    <tr>
+      <td><a href="{{ d.get_absolute_url }}">{{ d.title }}</a></td>
+      <td>{{ d.owner|display_name }}</td>
+      <td>{% phase_badge d %}</td>
+      <td class="num">{{ d.amount|yen }}</td>
+      <td class="{% if d.is_overdue %}overdue{% endif %}">{{ d.expected_close_date|date:"Y/m/d"|default:"-" }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}<p class="muted">案件はまだありません。</p>{% endif %}
+</section>
+{% endblock %}

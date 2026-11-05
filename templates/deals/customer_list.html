@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}顧客一覧{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>顧客一覧</h1>
+  <a class="btn primary" href="{% url 'customer_create' %}">＋ 顧客を登録</a>
+</div>
+<form class="card filters inline" method="get">
+  <div class="field"><input type="search" name="q" value="{{ q }}" placeholder="顧客名・担当者名・メール"></div>
+  <button class="btn primary" type="submit">検索</button>
+</form>
+<div class="card table-wrap">
+<table class="table">
+  <thead><tr><th>顧客名</th><th>担当者名</th><th>メール</th><th>電話番号</th><th class="num">進行中</th><th class="num">案件総数</th></tr></thead>
+  <tbody>
+  {% for c in customer_list %}
+  <tr>
+    <td><a href="{{ c.get_absolute_url }}">{{ c.name }}</a></td>
+    <td>{{ c.contact_person|default:"-" }}</td>
+    <td>{{ c.email|default:"-" }}</td>
+    <td>{{ c.phone|default:"-" }}</td>
+    <td class="num">{{ c.open_count }}</td>
+    <td class="num">{{ c.deal_count }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="6" class="muted center">顧客が登録されていません。</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% include "includes/pagination.html" %}
+{% endblock %}

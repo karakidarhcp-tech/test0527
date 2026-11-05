@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}ダッシュボード{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>ダッシュボード</h1>
+  <a class="btn primary" href="{% url 'deal_create' %}">＋ 案件を登録</a>
+</div>
+
+<section class="kpis">
+  <div class="kpi card"><div class="kpi-label">進行中の案件</div><div class="kpi-value">{{ open_count }}<small>件</small></div></div>
+  <div class="kpi card"><div class="kpi-label">パイプライン総額</div><div class="kpi-value">{{ pipeline_total|yen }}</div></div>
+  <div class="kpi card"><div class="kpi-label">加重見込み(金額×確度)</div><div class="kpi-value">{{ weighted_total|yen }}</div></div>
+  <div class="kpi card"><div class="kpi-label">今月の受注</div><div class="kpi-value">{{ won_month_total|yen }}</div><div class="kpi-sub">{{ won_month_count }}件{% if win_rate is not None %} ・ 今月の受注率 {{ win_rate }}%{% endif %}</div></div>
+</section>
+
+<section class="card">
+  <h2>フェーズ別</h2>
+  <table class="phase-table">
+    <thead><tr><th>フェーズ</th><th class="num">件数</th><th class="num">金額</th><th class="bar-col"></th></tr></thead>
+    <tbody>
+    {% for r in phase_rows %}
+      <tr>
+        <td><a href="{% url 'deal_list' %}?phase={{ r.value }}">{% phase_badge r.value r.label %}</a></td>
+        <td class="num">{{ r.count }}</td>
+        <td class="num">{{ r.total|yen }}</td>
+        <td class="bar-col"><div class="bar"><span class="phase-bg-{{ r.value }}" style="width: {{ r.pct }}%"></span></div></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<div class="grid2">
+  <section class="card">
+    <h2>期限切れの案件 <small class="muted">受注予定日を過ぎて進行中</small></h2>
+    {% include "deals/_mini_list.html" with deals=overdue_deals empty="期限切れの案件はありません。" warn=True %}
+  </section>
+  <section class="card">
+    <h2>30日以内に受注予定</h2>
+    {% include "deals/_mini_list.html" with deals=upcoming_deals empty="該当する案件はありません。" %}
+  </section>
+</div>
+
+<section class="card">
+  <h2>自分の担当案件 <small class="muted"><a href="{% url 'deal_list' %}?owner={{ user.pk }}&phase=open">すべて見る</a></small></h2>
+  {% include "deals/_mini_list.html" with deals=my_deals empty="担当している進行中の案件はありません。" %}
+</section>
+{% endblock %}

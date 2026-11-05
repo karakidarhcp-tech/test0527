@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}ログイン{% endblock %}
+{% block content %}
+<div class="login-box card">
+  <h1>案件管理システム</h1>
+  <p class="muted">社員アカウントでログインしてください</p>
+  <form method="post">{% csrf_token %}
+    {% if form.errors %}<div class="msg error">ユーザー名またはパスワードが正しくありません。</div>{% endif %}
+    <div class="field"><label for="id_username">ユーザー名</label>{{ form.username }}</div>
+    <div class="field"><label for="id_password">パスワード</label>{{ form.password }}</div>
+    <input type="hidden" name="next" value="{{ next }}">
+    <button class="btn primary block" type="submit">ログイン</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}案件の編集{% else %}案件の登録{% endif %}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'deal_list' %}">案件一覧</a> ›{% if object %} <a href="{{ object.get_absolute_url }}">{{ object.title }}</a> ›{% endif %}</p>
+<h1>{% if object %}案件の編集{% else %}案件の登録{% endif %}</h1>
+<form method="post" class="card form">{% csrf_token %}
+  {% include "includes/form_fields.html" %}
+  <p class="help">顧客が未登録の場合は <a href="{% url 'customer_create' %}" target="_blank">顧客を登録</a> してください。フェーズを「受注」「失注」にすると確度とクローズ日は自動設定されます。</p>
+  <div class="actions">
+    <button class="btn primary" type="submit">保存</button>
+    <a class="btn" href="{% if object %}{{ object.get_absolute_url }}{% else %}{% url 'deal_list' %}{% endif %}">キャンセル</a>
+  </div>
+</form>
+{% endblock %}

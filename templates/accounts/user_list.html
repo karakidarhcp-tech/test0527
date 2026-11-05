@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}ユーザー管理{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>ユーザー管理</h1>
+  <a class="btn primary" href="{% url 'user_create' %}">＋ ユーザーを追加</a>
+</div>
+<div class="card table-wrap">
+<table class="table">
+  <thead><tr><th>ユーザー名</th><th>氏名</th><th>メール</th><th>権限</th><th>状態</th><th class="num">担当中の案件</th><th>最終ログイン</th><th></th></tr></thead>
+  <tbody>
+  {% for u in users %}
+  <tr class="{% if not u.is_active %}inactive{% endif %}">
+    <td>{{ u.username }}</td>
+    <td>{% if u.last_name or u.first_name %}{{ u|display_name }}{% else %}-{% endif %}</td>
+    <td>{{ u.email|default:"-" }}</td>
+    <td>{% if u.is_staff %}<span class="badge staff">管理者</span>{% else %}一般{% endif %}</td>
+    <td>{% if u.is_active %}有効{% else %}<span class="muted">無効</span>{% endif %}</td>
+    <td class="num">{{ u.open_count }}</td>
+    <td class="muted">{{ u.last_login|date:"Y/m/d H:i"|default:"-" }}</td>
+    <td class="nowrap"><a href="{% url 'user_update' u.pk %}">編集</a> ・ <a href="{% url 'user_set_password' u.pk %}">PW再設定</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

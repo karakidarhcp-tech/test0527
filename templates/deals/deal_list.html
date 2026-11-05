@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}案件一覧{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>案件一覧</h1>
+  <div>
+    <a class="btn" href="{% url 'deal_export_csv' %}?{{ querystring }}">CSV出力</a>
+    <a class="btn primary" href="{% url 'deal_create' %}">＋ 案件を登録</a>
+  </div>
+</div>
+
+<form class="card filters" method="get">
+  {% for field in form %}
+  <div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>
+  {% endfor %}
+  <div class="filter-actions">
+    <button class="btn primary" type="submit">検索</button>
+    <a class="btn" href="{% url 'deal_list' %}">クリア</a>
+  </div>
+</form>
+
+<p class="muted">{{ total_count }}件 ・ 合計 {{ total_amount|yen }}</p>
+
+<div class="card table-wrap">
+{% if page_obj %}
+<table class="table">
+  <thead><tr><th>案件名</th><th>顧客</th><th>担当者</th><th>フェーズ</th><th class="num">見込み金額</th><th class="num">確度</th><th>受注予定日</th><th>更新</th></tr></thead>
+  <tbody>
+  {% for d in page_obj %}
+  <tr>
+    <td><a href="{{ d.get_absolute_url }}">{{ d.title }}</a></td>
+    <td><a href="{{ d.customer.get_absolute_url }}">{{ d.customer.name }}</a></td>
+    <td>{{ d.owner|display_name }}</td>
+    <td>{% phase_badge d %}</td>
+    <td class="num">{{ d.amount|yen }}</td>
+    <td class="num">{{ d.probability }}%</td>
+    <td class="{% if d.is_overdue %}overdue{% endif %}">{{ d.expected_close_date|date:"Y/m/d"|default:"-" }}</td>
+    <td class="muted">{{ d.updated_at|date:"m/d H:i" }}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="8" class="muted center">条件に一致する案件はありません。</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+</div>
+{% include "includes/pagination.html" %}
+{% endblock %}
