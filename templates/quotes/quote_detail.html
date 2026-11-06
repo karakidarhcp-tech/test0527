@@ -1,0 +1,95 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}{{ quote.number }} {{ quote.title }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'quote_list' %}">見積一覧</a> › <a href="{{ quote.deal.get_absolute_url }}">{{ quote.deal.number }} {{ quote.deal.title }}</a> ›</p>
+<div class="pagehead">
+  <h1><span class="mono">{{ quote.number }}</span> {{ quote.title }} <span class="badge q-{{ quote.status }}">{{ quote.get_status_display }}</span></h1>
+  <div>
+    {% if quote.is_editable %}
+      <a class="btn primary" href="{% url 'quote_edit' quote.pk %}">編集</a>
+      <form method="post" action="{% url 'quote_issue' quote.pk %}" class="inline" onsubmit="return confirm('見積書を発行します。発行後は編集できません（修正は新しい版で行います）。よろしいですか？')">{% csrf_token %}<button class="btn primary" type="submit">発行（PDF 保存）</button></form>
+    {% endif %}
+    <a class="btn" href="{% url 'quote_pdf' quote.pk %}" target="_blank">PDF{% if quote.is_editable %} プレビュー{% endif %}</a>
+    <form method="post" action="{% url 'quote_copy' quote.pk %}" class="inline">{% csrf_token %}<button class="btn" type="submit">新しい版を作成</button></form>
+  </div>
+</div>
+
+{% if quote.status == "submitted" %}
+<div class="card callout">
+  <div><strong>受注・失注の登録</strong><p class="muted">受注すると、この見積の金額が案件の確定金額になり、分割請求の予定を作成します。</p></div>
+  <div class="actions">
+    <a class="btn primary" href="{% url 'quote_accept' quote.pk %}">受注にする</a>
+    <form method="post" action="{% url 'quote_mark_lost' quote.pk %}" class="inline" onsubmit="return confirm('この見積を失注にしますか？')">{% csrf_token %}<button class="btn" type="submit">失注にする</button></form>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid2">
+<section class="card">
+  <h2>見積内容</h2>
+  <dl class="dl">
+    <dt>宛先</dt><dd>{{ quote.deal.customer.name_with_honorific }}</dd>
+    <dt>発行日</dt><dd>{{ quote.issue_date|date:"Y年n月j日" }}</dd>
+    <dt>有効期限</dt><dd>{{ quote.valid_until|date:"Y年n月j日"|default:"-" }}</dd>
+    {% if quote.delivery_terms %}<dt>納期</dt><dd>{{ quote.delivery_terms }}</dd>{% endif %}
+    {% if quote.delivery_place %}<dt>納入場所</dt><dd>{{ quote.delivery_place }}</dd>{% endif %}
+    {% if quote.notes %}<dt>備考</dt><dd class="pre">{{ quote.notes }}</dd>{% endif %}
+    {% if quote.issued_at %}<dt>発行日時</dt><dd class="muted">{{ quote.issued_at|date:"Y/m/d H:i" }}</dd>{% endif %}
+  </dl>
+  <div class="hero-total"><span>御見積金額（税込）</span><strong>{{ totals.total|yen }}</strong></div>
+</section>
+
+<section class="card internal">
+  <h2>原価・粗利 <small class="muted">社内用（印字されません）</small></h2>
+  <dl class="dl">
+    <dt>売上（税抜）</dt><dd>{{ cost.subtotal|yen }}</dd>
+    <dt>材料費</dt><dd>{{ cost.material|yen }}</dd>
+    <dt>労務費</dt><dd>{{ cost.labor|yen }} <span class="muted">（{{ cost.hours|floatformat:"-2" }} 時間 × {{ quote.labor_rate|yen }}）</span></dd>
+    <dt>その他原価</dt><dd>{{ cost.direct|yen }}</dd>
+    <dt>原価合計</dt><dd><strong>{{ cost.cost|yen }}</strong></dd>
+    <dt>粗利</dt><dd><strong>{{ cost.profit|yen }}</strong>{% if cost.margin is not None %}（粗利率 <span class="{% if cost.margin < quote.target_margin %}warn-text{% endif %}">{{ cost.margin }}%</span> ／ 目標 {{ quote.target_margin }}%）{% endif %}</dd>
+    <dt>見込製作時間</dt><dd>{{ cost.hours|floatformat:"-2" }} 時間</dd>
+  </dl>
+  {% if quote.internal_memo %}<p class="pre muted">{{ quote.internal_memo }}</p>{% endif %}
+</section>
+</div>
+
+<section class="card table-wrap">
+<table class="table">
+  <thead><tr><th>No</th><th>品名・仕様</th><th class="num">数量</th><th>単位</th><th class="num">単価</th><th class="num">金額</th><th>税率</th><th class="num">原価</th><th class="num">粗利率</th><th></th></tr></thead>
+  <tbody>
+  {% for ln in lines %}
+  <tr>
+    <td class="muted">{{ forloop.counter }}</td>
+    <td>{{ ln.name }}{% if ln.spec %}<br><small class="muted">{{ ln.spec }}</small>{% endif %}{% if ln.note %}<br><small class="muted">※{{ ln.note }}</small>{% endif %}</td>
+    <td class="num">{{ ln.quantity|floatformat:"-2" }}</td>
+    <td>{{ ln.unit }}</td>
+    <td class="num">{{ ln.unit_price|yen }}</td>
+    <td class="num">{{ ln.amount|yen }}</td>
+    <td>{{ ln.tax_rate }}%</td>
+    <td class="num muted">{% if ln.total_cost %}{{ ln.total_cost|yen }}{% else %}-{% endif %}</td>
+    <td class="num">{% if ln.margin is not None %}<span class="{% if ln.margin < quote.target_margin %}warn-text{% endif %}">{{ ln.margin }}%</span>{% else %}<span class="muted">-</span>{% endif %}</td>
+    <td class="nowrap"><a href="{% url 'quote_line_cost' quote.pk ln.pk %}">原価{% if quote.is_editable %}積算{% endif %}</a></td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="10" class="muted center">明細がありません。「編集」から追加してください。</td></tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+    {% for b in totals.rows %}<tr><td colspan="5" class="num muted">{{ b.rate }}%対象 {{ b.base|yen }}</td><td class="num muted">税 {{ b.tax|yen }}</td><td colspan="4"></td></tr>{% endfor %}
+    <tr><td colspan="5" class="num"><strong>合計（税込）</strong></td><td class="num"><strong>{{ totals.total|yen }}</strong></td><td colspan="4"></td></tr>
+  </tfoot>
+</table>
+</section>
+
+{% if other_versions %}
+<section class="card">
+  <h2>この案件の他の版</h2>
+  <ul class="plain">{% for q in other_versions %}<li><a href="{{ q.get_absolute_url }}" class="mono">{{ q.number }}</a> {{ q.title }} <span class="badge q-{{ q.status }}">{{ q.get_status_display }}</span> <span class="muted">{{ q.issue_date|date:"Y/m/d" }}</span></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if quote.is_editable %}
+<form method="post" action="{% url 'quote_delete' quote.pk %}" onsubmit="return confirm('この下書きを削除しますか？')">{% csrf_token %}<button class="linkbtn danger-text" type="submit">この下書きを削除</button></form>
+{% endif %}
+{% endblock %}

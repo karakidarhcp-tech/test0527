@@ -1,0 +1,84 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}{{ invoice.number }} {{ invoice.title }}{% endblock %}
+{% block content %}
+{% with ps=invoice.payment_status %}
+<p class="crumbs"><a href="{% url 'invoice_list' %}">請求・入金</a> › <a href="{{ invoice.deal.get_absolute_url }}">{{ invoice.deal.number }} {{ invoice.deal.title }}</a> ›</p>
+<div class="pagehead">
+  <h1><span class="mono">{{ invoice.number }}</span> {{ invoice.title }} <span class="badge inv-{{ ps.0 }}">{{ ps.1 }}</span></h1>
+  <div>
+    {% if invoice.is_editable %}
+      <a class="btn primary" href="{% url 'invoice_edit' invoice.pk %}">編集</a>
+      <form method="post" action="{% url 'invoice_issue' invoice.pk %}" class="inline" onsubmit="return confirm('請求書を発行します。発行後は編集できません。よろしいですか？')">{% csrf_token %}<button class="btn primary" type="submit">発行（PDF 保存）</button></form>
+    {% endif %}
+    <a class="btn" href="{% url 'invoice_pdf' invoice.pk %}" target="_blank">PDF{% if invoice.is_editable %} プレビュー{% endif %}</a>
+  </div>
+</div>
+
+<div class="grid2">
+<section class="card">
+  <h2>請求内容</h2>
+  <dl class="dl">
+    <dt>宛先</dt><dd>{{ invoice.deal.customer.name_with_honorific }}</dd>
+    <dt>請求日</dt><dd>{{ invoice.issue_date|date:"Y年n月j日" }}</dd>
+    <dt>お支払期限</dt><dd class="{% if ps.0 == 'overdue' %}overdue{% endif %}">{{ invoice.due_date|date:"Y年n月j日"|default:"-" }}</dd>
+    {% if schedule %}<dt>請求予定</dt><dd>{{ schedule.label }}（{{ schedule.billing_month|date:"Y年n月" }}・税抜 {{ schedule.amount|yen }}）</dd>{% endif %}
+    {% if invoice.notes %}<dt>備考</dt><dd class="pre">{{ invoice.notes }}</dd>{% endif %}
+    {% if invoice.issued_at %}<dt>発行日時</dt><dd class="muted">{{ invoice.issued_at|date:"Y/m/d H:i" }}</dd>{% endif %}
+  </dl>
+  <div class="hero-total"><span>ご請求金額（税込）</span><strong>{{ totals.total|yen }}</strong></div>
+</section>
+
+<section class="card">
+  <h2>入金</h2>
+  <dl class="dl">
+    <dt>請求額</dt><dd>{{ totals.total|yen }}</dd>
+    <dt>入金済み</dt><dd>{{ invoice.paid_amount|yen }}</dd>
+    <dt>残高</dt><dd><strong class="{% if invoice.balance > 0 and not invoice.is_editable %}warn-text{% endif %}">{{ invoice.balance|yen }}</strong></dd>
+  </dl>
+  {% if invoice.payments.all %}
+  <div class="table-wrap"><table class="table compact">
+    <thead><tr><th>入金日</th><th class="num">金額</th><th>方法</th><th>メモ</th><th></th></tr></thead>
+    <tbody>{% for p in invoice.payments.all %}<tr>
+      <td>{{ p.date|date:"Y/m/d" }}</td><td class="num">{{ p.amount|yen }}</td><td>{{ p.get_method_display }}</td><td>{{ p.note }}</td>
+      <td>{% if user.is_staff or user == p.created_by %}<form method="post" action="{% url 'payment_delete' p.pk %}" onsubmit="return confirm('この入金を取り消しますか？')">{% csrf_token %}<button class="linkbtn" type="submit">取消</button></form>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+  {% if not invoice.is_editable and invoice.balance != 0 %}
+  <form method="post" action="{% url 'payment_add' invoice.pk %}" class="payment-form">{% csrf_token %}
+    <div class="form-grid compact">{% with form=payment_form %}{% include "includes/form_fields.html" %}{% endwith %}</div>
+    <button class="btn primary" type="submit">入金を登録</button>
+  </form>
+  {% elif invoice.is_editable %}<p class="muted">発行後に入金を登録できます。</p>{% endif %}
+</section>
+</div>
+
+<section class="card table-wrap">
+<table class="table">
+  <thead><tr><th>No</th><th>品名・仕様</th><th class="num">数量</th><th>単位</th><th class="num">単価</th><th class="num">金額</th><th>税率</th></tr></thead>
+  <tbody>{% for ln in invoice.lines.all %}<tr>
+    <td class="muted">{{ forloop.counter }}</td>
+    <td>{{ ln.name }}{% if ln.spec %}<br><small class="muted">{{ ln.spec }}</small>{% endif %}{% if ln.note %}<br><small class="muted">※{{ ln.note }}</small>{% endif %}</td>
+    <td class="num">{{ ln.quantity|floatformat:"-2" }}</td><td>{{ ln.unit }}</td>
+    <td class="num">{{ ln.unit_price|yen }}</td><td class="num">{{ ln.amount|yen }}</td><td>{{ ln.tax_rate }}%</td>
+  </tr>{% endfor %}</tbody>
+  <tfoot>
+    {% for b in totals.rows %}<tr><td colspan="5" class="num muted">{{ b.rate }}%対象 {{ b.base|yen }}</td><td class="num muted">税 {{ b.tax|yen }}</td><td></td></tr>{% endfor %}
+    <tr><td colspan="5" class="num"><strong>合計（税込）</strong></td><td class="num"><strong>{{ totals.total|yen }}</strong></td><td></td></tr>
+  </tfoot>
+</table>
+</section>
+
+{% if invoice.is_editable %}
+<form method="post" action="{% url 'invoice_delete' invoice.pk %}" onsubmit="return confirm('この下書きを削除しますか？')">{% csrf_token %}<button class="linkbtn danger-text" type="submit">この下書きを削除</button></form>
+{% elif user.is_staff and not invoice.payments.exists %}
+<details class="card"><summary>発行済みの請求書を下書きに戻す（管理者のみ）</summary>
+  <form method="post" action="{% url 'invoice_revert' invoice.pk %}" class="form">{% csrf_token %}
+    <p class="help">金額の誤りなどで再発行する場合に使います。今の PDF は控えに残り、再発行すると新しい控えが追加されます。</p>
+    <div class="field"><label for="reason">理由</label><input id="reason" type="text" name="reason" required placeholder="例: 単価の誤り"></div>
+    <button class="btn danger" type="submit">下書きに戻す</button>
+  </form>
+</details>
+{% endif %}
+{% endwith %}
+{% endblock %}

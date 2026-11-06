@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}受注: {{ quote.number }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ deal.get_absolute_url }}">{{ deal.number }} {{ deal.title }}</a> › <a href="{{ quote.get_absolute_url }}">{{ quote.number }}</a> ›</p>
+<h1>受注の登録</h1>
+<p class="muted">見積 <span class="mono">{{ quote.number }}</span>（税抜 {{ subtotal|yen }}）で受注します。確定金額と請求の予定を確認してください。</p>
+<form method="post" id="accept-form">{% csrf_token %}
+  {{ formset.management_form }}
+  <section class="card">
+    <h2>受注内容</h2>
+    <div class="form-grid">{% include "includes/form_fields.html" %}</div>
+  </section>
+  <section class="card">
+    <h2>分割請求の予定 <small class="muted">金額は税抜。合計を確定金額に合わせてください</small></h2>
+    {% if formset.non_form_errors %}<div class="msg error">{{ formset.non_form_errors|join:" " }}</div>{% endif %}
+    <div id="sch-rows">
+    {% for f in formset %}{% include "billing/_schedule_row.html" %}{% endfor %}
+    </div>
+    <template id="sch-template">{% include "billing/_schedule_row.html" with f=formset.empty_form %}</template>
+    <div class="line-actions"><button type="button" class="btn" id="add-sch">＋ 行を追加</button></div>
+    <dl class="totals"><dt>予定の合計</dt><dd id="sch-sum">-</dd><dt>確定金額との差</dt><dd id="sch-diff">-</dd></dl>
+  </section>
+  <div class="actions sticky-actions">
+    <button class="btn primary" type="submit">受注を登録</button>
+    <a class="btn" href="{{ quote.get_absolute_url }}">キャンセル</a>
+  </div>
+</form>
+<script>
+(function () {
+  const form = document.getElementById("accept-form");
+  const rows = document.getElementById("sch-rows");
+  const total = form.querySelector('[name="sch-TOTAL_FORMS"]');
+  const yen = (n) => "¥" + Math.round(n).toLocaleString("ja-JP");
+  function recalc() {
+    let sum = 0;
+    rows.querySelectorAll(".sch-row").forEach((r) => {
+      const del = r.querySelector('[name$="-DELETE"]');
+      r.classList.toggle("deleted", !!(del && del.checked));
+      if (!(del && del.checked)) sum += parseInt(r.querySelector('[name$="-amount"]').value || "0", 10);
+    });
+    const contract = parseInt(form.querySelector('[name="contract_amount"]').value || "0", 10);
+    document.getElementById("sch-sum").textContent = yen(sum);
+    const diff = contract - sum;
+    const el = document.getElementById("sch-diff");
+    el.textContent = diff === 0 ? "一致しています" : (diff > 0 ? "+" : "−") + yen(Math.abs(diff));
+    el.className = diff === 0 ? "ok-text" : "warn-text";
+  }
+  document.getElementById("add-sch").addEventListener("click", () => {
+    const i = parseInt(total.value, 10);
+    rows.insertAdjacentHTML("beforeend", document.getElementById("sch-template").innerHTML.replace(/__prefix__/g, i));
+    total.value = i + 1;
+    recalc();
+  });
+  form.addEventListener("input", recalc);
+  form.addEventListener("change", recalc);
+  recalc();
+})();
+</script>
+{% endblock %}

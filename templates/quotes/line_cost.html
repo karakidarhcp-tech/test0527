@@ -1,0 +1,57 @@
+{% extends "base.html" %}{% load static deal_tags %}
+{% block title %}原価積算: {{ line.name }}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ quote.deal.get_absolute_url }}">{{ quote.deal.number }}</a> › <a href="{{ quote.get_absolute_url }}">{{ quote.number }}</a> ›</p>
+<h1>原価積算: {{ line.name }}{% if line.spec %} <small class="muted">{{ line.spec }}</small>{% endif %}</h1>
+<p class="muted">この明細 <strong>1{{ line.unit }}あたり</strong>の材料・製作時間を入力します（数量 {{ line.quantity|floatformat:"-2" }}{{ line.unit }} を掛けて見積全体の原価になります）。</p>
+
+<form method="post" id="cost-form" data-search-url="{% url 'item_search_json' %}" data-labor-rate="{{ quote.labor_rate }}"
+      data-margin="{{ quote.target_margin }}" data-rounding="{{ quote.price_rounding }}">{% csrf_token %}
+{{ formset.management_form }}
+<fieldset {% if not editable %}disabled{% endif %} class="plainset">
+<section class="card">
+  <div class="pagehead"><h2>材料の拾い出し</h2>
+    <div class="picker">
+      <input type="search" id="mat-search" placeholder="品目マスタから材料を追加" autocomplete="off" aria-label="品目マスタから材料を追加">
+      <ul id="mat-results" class="picker-results" hidden></ul>
+    </div>
+  </div>
+  <div class="mats" id="mats">
+    <div class="mat-head" aria-hidden="true"><span>材料名 / 規格</span><span>使用量</span><span>単位</span><span>原価単価</span><span class="num">原価</span><span></span></div>
+    {% for f in formset %}{% include "quotes/_material_row.html" with f=f %}{% endfor %}
+  </div>
+  <template id="mat-template">{% include "quotes/_material_row.html" with f=formset.empty_form %}</template>
+  <button type="button" class="btn" id="add-mat">＋ 材料を手入力で追加</button>
+</section>
+
+<section class="card">
+  <h2>製作時間・その他原価</h2>
+  <div class="form-grid">{% include "includes/form_fields.html" %}</div>
+</section>
+</fieldset>
+
+<section class="card">
+  <h2>1{{ line.unit }}あたりの原価</h2>
+  <dl class="totals wide">
+    <dt>材料費</dt><dd id="c-mat">-</dd>
+    <dt>労務費 <small class="muted">（時間 × {{ quote.labor_rate|yen }}）</small></dt><dd id="c-labor">-</dd>
+    <dt>その他原価</dt><dd id="c-direct">-</dd>
+    <dt class="grand">原価</dt><dd class="grand" id="c-cost">-</dd>
+    <dt>目標粗利率 {{ quote.target_margin }}% の単価</dt><dd id="c-suggest">-</dd>
+    <dt>現在の単価</dt><dd>{{ line.unit_price|yen }} <small class="muted" id="c-margin"></small></dd>
+  </dl>
+</section>
+
+{% if editable %}
+<div class="actions sticky-actions">
+  <button class="btn primary" type="submit" name="apply_price" value="1">保存して単価に反映</button>
+  <button class="btn" type="submit">原価だけ保存</button>
+  <button class="btn" type="submit" name="back" value="1">保存して見積に戻る</button>
+</div>
+{% else %}
+<p class="msg">提出済みの見積のため閲覧のみです。<a href="{{ quote.get_absolute_url }}">見積に戻る</a></p>
+{% endif %}
+</form>
+<script>window.CURRENT_UNIT_PRICE = {{ line.unit_price }};</script>
+<script src="{% static 'js/line_cost.js' %}"></script>
+{% endblock %}

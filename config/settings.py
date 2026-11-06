@@ -31,6 +31,9 @@ INSTALLED_APPS = [
     "accounts",
     "deals",
     "catalog",
+    "quotes",
+    "billing",
+    "documents",
 ]
 
 MIDDLEWARE = [
@@ -133,5 +136,10 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO")},
     # 403/404 などの想定内の応答は記録しない（500 エラーは記録する）
-    "loggers": {"django.request": {"level": "ERROR"}},
+    "loggers": {
+        "django.request": {"level": "ERROR"},
+        # PDF 生成時のフォント処理の詳細ログを抑える
+        "fontTools": {"level": "WARNING"},
+        "weasyprint": {"level": "WARNING"},
+    },
 }

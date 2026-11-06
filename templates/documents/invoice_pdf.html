@@ -1,0 +1,12 @@
+{% extends "documents/_base_pdf.html" %}
+{% block doc_title %}御請求書{% endblock %}
+{% block heading %}御請求書{% endblock %}
+{% block meta %}<tr><td>請求書番号</td><td>{{ doc.number }}</td></tr><tr><td>請求日</td><td>{{ doc.issue_date|date:"Y年n月j日" }}</td></tr>{% endblock %}
+{% block lead %}下記のとおり御請求申し上げます。{% endblock %}
+{% block info %}
+<tr><td>件名</td><td>{{ doc.title }}</td></tr>
+<tr><td>案件番号</td><td>{{ deal.number }}</td></tr>
+<tr><td>お支払期限</td><td><strong>{{ doc.due_date|date:"Y年n月j日"|default:"別途ご相談" }}</strong></td></tr>
+{% endblock %}
+{% block amount_label %}ご請求金額{% endblock %}
+{% block after %}{% if company.bank_info %}<div class="box"><h3>お振込先</h3><div class="pre">{{ company.bank_info }}</div></div>{% endif %}{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}請求・入金{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>請求・入金</h1>
+  <form method="get" class="inline-search"><input type="hidden" name="tab" value="{{ tab }}"><input type="search" name="q" value="{{ request.GET.q }}" placeholder="番号・件名・顧客名" aria-label="検索"><button class="btn" type="submit">検索</button></form>
+</div>
+<p class="muted">未入金の残高合計: <strong>{{ outstanding|yen }}</strong></p>
+<nav class="tabs" aria-label="表示の切り替え">
+  {% for key, label, count in tabs %}<a href="?tab={{ key }}{% if request.GET.q %}&q={{ request.GET.q|urlencode }}{% endif %}" class="{% if tab == key %}active{% endif %}{% if key == 'overdue' and count %} warn{% endif %}">{{ label }} <span class="count">{{ count }}</span></a>{% endfor %}
+</nav>
+
+{% if tab == "todo" %}
+<p class="muted">請求月が来月までで、まだ請求書を作っていない予定です。</p>
+<div class="card table-wrap">
+<table class="table">
+  <thead><tr><th>請求月</th><th>案件</th><th>顧客</th><th>区分</th><th class="num">金額（税抜）</th><th></th></tr></thead>
+  <tbody>{% for s in todo %}<tr>
+    <td class="nowrap {% if s.status.0 == 'due' %}warn-text{% endif %}">{{ s.billing_month|date:"Y年n月" }}</td>
+    <td><a href="{{ s.deal.get_absolute_url }}#billing"><span class="mono">{{ s.deal.number }}</span> {{ s.deal.title }}</a></td>
+    <td>{{ s.deal.customer.name }}</td><td>{{ s.label }}</td><td class="num">{{ s.amount|yen }}</td>
+    <td><form method="post" action="{% url 'invoice_create' s.deal.pk %}">{% csrf_token %}<input type="hidden" name="schedule" value="{{ s.pk }}"><button class="btn small primary" type="submit">請求書を作成</button></form></td>
+  </tr>{% empty %}<tr><td colspan="6" class="muted center">請求待ちの予定はありません。</td></tr>{% endfor %}</tbody>
+</table>
+</div>
+{% else %}
+<div class="card table-wrap">
+<table class="table">
+  <thead><tr><th>請求書番号</th><th>件名</th><th>顧客</th><th>状態</th><th class="num">請求額</th><th class="num">残高</th><th>請求日</th><th>支払期限</th></tr></thead>
+  <tbody>{% for i in page_obj %}{% with ps=i.payment_status %}<tr>
+    <td class="mono nowrap"><a href="{{ i.get_absolute_url }}">{{ i.number }}</a></td>
+    <td>{{ i.title }}</td><td>{{ i.deal.customer.name }}</td>
+    <td><span class="badge inv-{{ ps.0 }}">{{ ps.1 }}</span></td>
+    <td class="num">{{ i.totals.total|yen }}</td>
+    <td class="num">{% if i.is_editable %}-{% else %}{{ i.balance|yen }}{% endif %}</td>
+    <td class="nowrap">{{ i.issue_date|date:"Y/m/d" }}</td>
+    <td class="nowrap {% if ps.0 == 'overdue' %}overdue{% endif %}">{{ i.due_date|date:"Y/m/d"|default:"-" }}</td>
+  </tr>{% endwith %}{% empty %}<tr><td colspan="8" class="muted center">該当する請求書はありません。</td></tr>{% endfor %}</tbody>
+</table>
+</div>
+{% include "includes/pagination.html" %}
+{% endif %}
+{% endblock %}

@@ -97,7 +97,8 @@ def item_search_json(request):
     if q:
         qs = qs.filter(Q(name__icontains=q) | Q(code__icontains=q) | Q(spec__icontains=q))
     return JsonResponse({"items": [
-        {"id": i.pk, "label": str(i), "unit": i.unit, "cost": str(i.cost)} for i in qs[:20]
+        {"id": i.pk, "label": str(i), "name": i.name, "spec": i.spec, "unit": i.unit, "cost": str(i.cost),
+         "price": i.price} for i in qs[:20]
     ]})
 
 

@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}発行済み書類{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>発行済み書類（控え）</h1></div>
+<p class="muted">発行した見積書・請求書の PDF 原本です。変更・削除はできません。日付・金額・取引先で検索できます。</p>
+<form class="card filters" method="get">
+  <div class="field"><label for="q">番号・件名</label><input id="q" type="search" name="q" value="{{ request.GET.q }}"></div>
+  <div class="field"><label for="customer">取引先</label><input id="customer" type="search" name="customer" value="{{ request.GET.customer }}"></div>
+  <div class="field"><label for="doc_type">種別</label><select id="doc_type" name="doc_type"><option value="">すべて</option>{% for v, l in doc_types %}<option value="{{ v }}" {% if request.GET.doc_type == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="field"><label for="date_from">日付（から）</label><input id="date_from" type="date" name="date_from" value="{{ request.GET.date_from }}"></div>
+  <div class="field"><label for="date_to">日付（まで）</label><input id="date_to" type="date" name="date_to" value="{{ request.GET.date_to }}"></div>
+  <div class="field"><label for="amount_min">金額（以上）</label><input id="amount_min" type="text" inputmode="numeric" name="amount_min" value="{{ request.GET.amount_min }}"></div>
+  <div class="field"><label for="amount_max">金額（以下）</label><input id="amount_max" type="text" inputmode="numeric" name="amount_max" value="{{ request.GET.amount_max }}"></div>
+  <div class="filter-actions"><button class="btn primary" type="submit">検索</button><a class="btn" href="{% url 'document_list' %}">クリア</a></div>
+</form>
+<div class="card table-wrap">
+<table class="table">
+  <thead><tr><th>日付</th><th>種別</th><th>書類番号</th><th>取引先</th><th>件名</th><th class="num">税込金額</th><th>発行</th><th></th></tr></thead>
+  <tbody>{% for d in page_obj %}<tr>
+    <td class="nowrap">{{ d.issue_date|date:"Y/m/d" }}</td><td>{{ d.get_doc_type_display }}</td>
+    <td class="mono nowrap">{{ d.number }}{% if d.revision > 1 %} <small class="muted">（{{ d.revision }}回目）</small>{% endif %}</td>
+    <td>{{ d.customer_name }}</td><td>{{ d.title }}</td><td class="num">{{ d.total|yen }}</td>
+    <td class="muted nowrap">{{ d.issued_at|date:"Y/m/d H:i" }} {{ d.issued_by|display_name }}</td>
+    <td class="nowrap"><a href="{% url 'document_download' d.pk %}" target="_blank">表示</a> ・ <a href="{% url 'document_download' d.pk %}?download=1">保存</a></td>
+  </tr>{% empty %}<tr><td colspan="8" class="muted center">該当する書類はありません。</td></tr>{% endfor %}</tbody>
+</table>
+</div>
+{% include "includes/pagination.html" %}
+{% endblock %}

@@ -24,7 +24,7 @@
 <section class="card">
   <h2>案件（{{ deals|length }}件）</h2>
   {% if deals %}
-  <table class="table compact">
+  <div class="table-wrap"><table class="table compact">
     <thead><tr><th>案件番号</th><th>案件名</th><th>担当者</th><th>フェーズ</th><th class="num">金額</th><th>受注予定日</th></tr></thead>
     <tbody>
     {% for d in deals %}
@@ -38,7 +38,7 @@
     </tr>
     {% endfor %}
     </tbody>
-  </table>
+  </table></div>
   {% else %}<p class="muted">案件はまだありません。</p>{% endif %}
 </section>
 {% endblock %}

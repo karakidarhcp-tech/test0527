@@ -1,0 +1,13 @@
+<div class="mat-row{% if f.errors %} has-error{% endif %}" data-mat>
+  {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+  <div class="mc-name">
+    <label class="sr" for="{{ f.name.id_for_label }}">材料名</label>{{ f.name }}
+    <label class="sr" for="{{ f.spec.id_for_label }}">規格</label>{{ f.spec }}
+  </div>
+  <div class="mc-qty"><label for="{{ f.quantity.id_for_label }}">使用量</label>{{ f.quantity }}</div>
+  <div class="mc-unit"><label for="{{ f.unit.id_for_label }}">単位</label>{{ f.unit }}</div>
+  <div class="mc-cost"><label for="{{ f.unit_cost.id_for_label }}">原価単価</label>{{ f.unit_cost }}</div>
+  <div class="mc-amount num" data-amount>-</div>
+  <div class="mc-ops"><label class="btn small del-toggle" title="この材料を削除">{{ f.DELETE }}<span>削除</span></label></div>
+  {% if f.errors %}<div class="lc-errors">{% for field in f %}{% for e in field.errors %}<small class="error">{{ field.label }}: {{ e }}</small>{% endfor %}{% endfor %}</div>{% endif %}
+</div>

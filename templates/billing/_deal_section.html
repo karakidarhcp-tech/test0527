@@ -1,0 +1,44 @@
+{% load deal_tags %}
+<section class="card" id="billing">
+  <div class="pagehead"><h2>請求・入金 <span class="badge bill-{{ billing_status.0 }}">{{ billing_status.1 }}</span></h2>
+    <form method="post" action="{% url 'invoice_create' deal.pk %}">{% csrf_token %}<button class="btn small" type="submit">＋ 予定外の請求書</button></form>
+  </div>
+  {% if deal.is_won %}
+  <div class="money-strip">
+    <div><span>確定金額（税抜）</span><strong>{{ deal.contract_amount|yen }}</strong></div>
+    <div><span>請求済み（税抜）</span><strong>{{ money.billed|yen }}</strong></div>
+    <div><span>入金済み（税込）</span><strong>{{ money.paid|yen }}</strong></div>
+    <div><span>未入金（税込）</span><strong class="{% if money.outstanding > 0 %}warn-text{% endif %}">{{ money.outstanding|yen }}</strong></div>
+  </div>
+  {% endif %}
+
+  {% if schedules %}
+  <h3>請求予定</h3>
+  <div class="table-wrap"><table class="table compact">
+    <thead><tr><th>請求月</th><th>区分</th><th class="num">金額（税抜）</th><th>状態</th><th></th></tr></thead>
+    <tbody>{% for s in schedules %}{% with st=s.status %}<tr>
+      <td class="nowrap">{{ s.billing_month|date:"Y年n月" }}</td><td>{{ s.label }}</td><td class="num">{{ s.amount|yen }}</td>
+      <td>{% if s.invoice %}<a href="{{ s.invoice.get_absolute_url }}" class="mono">{{ s.invoice.number }}</a> {% endif %}<span class="badge inv-{{ st.0 }}">{{ st.1 }}</span></td>
+      <td class="nowrap">{% if not s.invoice %}
+        <form method="post" action="{% url 'invoice_create' deal.pk %}" class="inline">{% csrf_token %}<input type="hidden" name="schedule" value="{{ s.pk }}">
+          <button class="btn small primary" type="submit" name="mode" value="lump">請求書を作成</button>
+          {% if schedules|length == 1 %}<button class="btn small" type="submit" name="mode" value="lines" title="見積の明細をそのまま引き継ぐ">見積明細で作成</button>{% endif %}
+        </form>{% endif %}</td>
+    </tr>{% endwith %}{% endfor %}</tbody>
+  </table></div>
+  {% elif deal.is_won %}<p class="muted">請求予定はありません。</p>
+  {% else %}<p class="muted">見積を発行して「受注にする」と、確定金額と請求予定が作成されます。</p>{% endif %}
+
+  {% if invoices %}
+  <h3>請求書</h3>
+  <div class="table-wrap"><table class="table compact">
+    <thead><tr><th>請求書番号</th><th>件名</th><th class="num">請求額</th><th class="num">残高</th><th>状態</th><th>支払期限</th></tr></thead>
+    <tbody>{% for i in invoices %}{% with ps=i.payment_status %}<tr>
+      <td class="mono nowrap"><a href="{{ i.get_absolute_url }}">{{ i.number }}</a></td><td>{{ i.title }}</td>
+      <td class="num">{{ i.totals.total|yen }}</td><td class="num">{% if i.is_editable %}-{% else %}{{ i.balance|yen }}{% endif %}</td>
+      <td><span class="badge inv-{{ ps.0 }}">{{ ps.1 }}</span></td>
+      <td class="nowrap {% if ps.0 == 'overdue' %}overdue{% endif %}">{{ i.due_date|date:"Y/m/d"|default:"-" }}</td>
+    </tr>{% endwith %}{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</section>

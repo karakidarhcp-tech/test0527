@@ -1,0 +1,18 @@
+{% load deal_tags %}<div class="line-row{% if f.errors %} has-error{% endif %}" data-line>
+  {% for h in f.hidden_fields %}{{ h }}{% endfor %}
+  <div class="lc-name">
+    <label class="sr" for="{{ f.name.id_for_label }}">品名</label>{{ f.name }}
+    <label class="sr" for="{{ f.spec.id_for_label }}">仕様・寸法</label>{{ f.spec }}
+  </div>
+  <div class="lc-qty"><label for="{{ f.quantity.id_for_label }}">数量</label>{{ f.quantity }}</div>
+  <div class="lc-unit"><label for="{{ f.unit.id_for_label }}">単位</label>{{ f.unit }}</div>
+  <div class="lc-price"><label for="{{ f.unit_price.id_for_label }}">単価</label>{{ f.unit_price }}</div>
+  <div class="lc-tax"><label for="{{ f.tax_rate.id_for_label }}">税率</label>{{ f.tax_rate }}</div>
+  <div class="lc-amount num" data-amount>-</div>
+  <div class="lc-ops">
+    {% if show_cost and f.instance.pk %}<button class="btn small" type="submit" name="cost_line" value="{{ f.instance.pk }}" title="材料・製作時間から原価を積算">原価{% if f.instance.materials.exists or f.instance.production_hours %} ✓{% endif %}</button>{% endif %}
+    <label class="btn small del-toggle" title="この行を削除">{{ f.DELETE }}<span>削除</span></label>
+  </div>
+  <div class="lc-note"><label class="sr" for="{{ f.note.id_for_label }}">備考</label>{{ f.note }}</div>
+  {% if f.errors %}<div class="lc-errors">{% for field in f %}{% for e in field.errors %}<small class="error">{{ field.label }}: {{ e }}</small>{% endfor %}{% endfor %}{% for e in f.non_field_errors %}<small class="error">{{ e }}</small>{% endfor %}</div>{% endif %}
+</div>

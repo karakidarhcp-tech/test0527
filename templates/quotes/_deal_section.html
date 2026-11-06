@@ -1,0 +1,17 @@
+{% load deal_tags %}
+<section class="card" id="quotes">
+  <div class="pagehead"><h2>見積</h2>
+    <form method="post" action="{% url 'quote_create' deal.pk %}">{% csrf_token %}<button class="btn primary small" type="submit">＋ 見積を作成</button></form>
+  </div>
+  {% with quotes=deal.quotes.all %}
+  {% if quotes %}
+  <div class="table-wrap"><table class="table compact">
+    <thead><tr><th>見積番号</th><th>件名</th><th>ステータス</th><th class="num">合計（税込）</th><th>発行日</th></tr></thead>
+    <tbody>{% for q in quotes %}<tr>
+      <td class="mono nowrap"><a href="{{ q.get_absolute_url }}">{{ q.number }}</a></td><td>{{ q.title }}</td>
+      <td><span class="badge q-{{ q.status }}">{{ q.get_status_display }}</span></td>
+      <td class="num">{{ q.totals.total|yen }}</td><td class="nowrap">{{ q.issue_date|date:"Y/m/d" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">まだ見積はありません。</p>{% endif %}
+  {% endwith %}
+</section>

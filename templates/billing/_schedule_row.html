@@ -1,0 +1,7 @@
+<div class="sch-row{% if f.errors %} has-error{% endif %}">
+  <div><label for="{{ f.label.id_for_label }}">区分</label>{{ f.label }}</div>
+  <div><label for="{{ f.billing_month.id_for_label }}">請求月</label>{{ f.billing_month }}</div>
+  <div><label for="{{ f.amount.id_for_label }}">金額（税抜）</label>{{ f.amount }}</div>
+  <div class="sch-del"><label class="btn small del-toggle">{{ f.DELETE }}<span>削除</span></label></div>
+  {% if f.errors %}<div class="lc-errors">{% for field in f %}{% for e in field.errors %}<small class="error">{{ field.label }}: {{ e }}</small>{% endfor %}{% endfor %}</div>{% endif %}
+</div>

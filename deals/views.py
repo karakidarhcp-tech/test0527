@@ -182,7 +182,22 @@ class DealDetailView(LoginRequiredMixin, DetailView):
     queryset = Deal.objects.select_related("customer", "owner", "created_by")
 
     def get_context_data(self, **kwargs):
+        from billing.models import deal_billing_status
+
         ctx = super().get_context_data(**kwargs)
+        deal = self.object
+        invoices = list(deal.invoices.prefetch_related("lines", "payments"))
+        issued = [i for i in invoices if not i.is_editable]
+        paid = sum(i.paid_amount for i in issued)
+        ctx.update(
+            deal_sections=["quotes/_deal_section.html", "billing/_deal_section.html"],
+            schedules=deal.billing_schedules.select_related("invoice").prefetch_related(
+                "invoice__lines", "invoice__payments"),
+            invoices=invoices,
+            billing_status=deal_billing_status(deal),
+            money={"billed": sum(i.totals.subtotal for i in issued), "paid": paid,
+                   "outstanding": sum(i.totals.total for i in issued) - paid},
+        )
         ctx["activities"] = self.object.activities.select_related("user")
         ctx["comment_form"] = kwargs.get("comment_form") or CommentForm()
         return ctx

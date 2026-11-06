@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% load static deal_tags %}
+{% block title %}{{ quote.number }} 編集{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{{ quote.deal.get_absolute_url }}">{{ quote.deal.number }} {{ quote.deal.title }}</a> ›</p>
+<div class="pagehead">
+  <h1><span class="mono">{{ quote.number }}</span> 見積の編集 <span class="badge q-{{ quote.status }}">{{ quote.get_status_display }}</span></h1>
+</div>
+
+<form method="post" id="line-form" data-margin="{{ quote.target_margin }}" data-rounding="{{ quote.price_rounding }}"
+      data-search-url="{% url 'item_search_json' %}">{% csrf_token %}
+  {{ formset.management_form }}
+  {% if formset.non_form_errors %}<div class="msg error">{{ formset.non_form_errors|join:" " }}</div>{% endif %}
+
+  <section class="card">
+    <h2>宛先・件名</h2>
+    <p class="muted">宛先: {{ quote.deal.customer.name_with_honorific }}（変更は <a href="{{ quote.deal.customer.get_absolute_url }}">顧客情報</a> から）</p>
+    <div class="form-grid">{% include "includes/form_fields.html" %}</div>
+  </section>
+
+  <section class="card">
+    <div class="pagehead"><h2>明細</h2>
+      <div class="picker">
+        <input type="search" id="item-search" placeholder="品目マスタから追加（品名・品番で検索）" autocomplete="off" aria-label="品目マスタから追加">
+        <ul id="item-results" class="picker-results" hidden></ul>
+      </div>
+    </div>
+    <div class="lines" id="lines">
+      <div class="line-head" aria-hidden="true">
+        <span>品名 / 仕様・寸法</span><span>数量</span><span>単位</span><span>単価</span><span>税率</span><span class="num">金額</span><span></span>
+      </div>
+      {% for f in formset %}
+        {% include "quotes/_line_row.html" with f=f show_cost=True %}
+      {% endfor %}
+    </div>
+    <template id="line-template">{% include "quotes/_line_row.html" with f=formset.empty_form show_cost=True %}</template>
+    <div class="line-actions">
+      <button type="button" class="btn" id="add-line">＋ 行を追加</button>
+    </div>
+    <dl class="totals" id="totals" aria-live="polite">
+      <dt>小計（税抜）</dt><dd id="t-subtotal">-</dd>
+      <dt>消費税</dt><dd id="t-tax">-</dd>
+      <dt class="grand">合計（税込）</dt><dd class="grand" id="t-total">-</dd>
+    </dl>
+    <p class="help">消費税は税率ごとに合計してから 1 回だけ計算します（インボイス制度のルール）。原価積算は行を保存してから「原価」ボタンで入力します。</p>
+  </section>
+
+  <div class="actions sticky-actions">
+    <button class="btn primary" type="submit">保存して確認</button>
+    <button class="btn" type="submit" name="stay" value="1">保存して編集を続ける</button>
+    <a class="btn" href="{{ quote.get_absolute_url }}">キャンセル</a>
+  </div>
+</form>
+<script src="{% static 'js/quote_edit.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% load deal_tags %}<!doctype html>
+<html lang="ja"><head><meta charset="utf-8">
+<title>{% block doc_title %}{% endblock %} {{ doc.number }}</title>
+<style>
+  @page { size: A4; margin: 16mm 14mm 16mm 14mm;
+    @bottom-right { content: "{{ doc.number }}　" counter(page) " / " counter(pages); font-size: 8pt; color: #666;
+      font-family: "IPAexGothic", "IPAGothic", "Noto Sans CJK JP", sans-serif; } }
+  * { box-sizing: border-box; }
+  body { font-family: "IPAexGothic", "IPAGothic", "Noto Sans CJK JP", "Hiragino Sans", sans-serif; font-size: 9.5pt; color: #111; line-height: 1.5; margin: 0; }
+  .doc-title { text-align: center; font-size: 20pt; letter-spacing: .6em; margin: 0 0 6mm; padding-left: .6em; border-bottom: 3px double #333; padding-bottom: 2mm; }
+  .meta { position: absolute; top: 0; right: 0; font-size: 8.5pt; text-align: right; }
+  .meta table td { padding: 0 0 0 4mm; }
+  .head { display: flex; justify-content: space-between; gap: 8mm; margin-top: 4mm; }
+  .to { flex: 1.2; }
+  .to .name { font-size: 14pt; border-bottom: 1px solid #333; padding-bottom: 1mm; margin-bottom: 2mm; }
+  .to .lead { margin: 3mm 0; }
+  .to table.info td { padding: .6mm 2mm .6mm 0; vertical-align: top; }
+  .to table.info td:first-child { color: #555; white-space: nowrap; }
+  .from { flex: .9; font-size: 8.5pt; position: relative; padding-top: 2mm; }
+  .from .company { font-size: 11.5pt; font-weight: bold; margin-bottom: 1mm; }
+  .from .reg { margin-top: 1.5mm; }
+  .amount-box { display: flex; align-items: baseline; gap: 6mm; border: 1.5px solid #333; padding: 2.5mm 4mm; margin: 5mm 0 4mm; width: 62%; }
+  .amount-box .label { font-size: 10.5pt; }
+  .amount-box .value { font-size: 17pt; font-weight: bold; letter-spacing: .02em; }
+  .amount-box .tax { font-size: 8.5pt; color: #444; }
+  table.lines { width: 100%; border-collapse: collapse; margin-top: 2mm; }
+  table.lines th { background: #eef0f3; border: .6pt solid #888; padding: 1.2mm 1.5mm; font-weight: normal; font-size: 8.5pt; }
+  table.lines td { border: .6pt solid #888; padding: 1.2mm 1.5mm; vertical-align: top; }
+  table.lines tr { page-break-inside: avoid; }
+  table.lines thead { display: table-header-group; }
+  .num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .c { text-align: center; }
+  .spec { font-size: 8pt; color: #444; }
+  .no { width: 7mm; } .qty { width: 14mm; } .unit { width: 11mm; } .price { width: 24mm; } .amt { width: 26mm; } .rate { width: 11mm; }
+  .totals { width: 62mm; margin-left: auto; margin-top: 2mm; border-collapse: collapse; page-break-inside: avoid; }
+  .totals td { padding: 1mm 1.5mm; border-bottom: .6pt solid #bbb; }
+  .totals tr.grand td { border-top: 1.2pt solid #333; border-bottom: 1.2pt solid #333; font-weight: bold; font-size: 10.5pt; }
+  .box { border: .6pt solid #888; padding: 2mm 3mm; margin-top: 4mm; page-break-inside: avoid; }
+  .box h3 { margin: 0 0 1mm; font-size: 9pt; }
+  .pre { white-space: pre-wrap; }
+  .note8 { font-size: 7.5pt; color: #444; margin-top: 1mm; }
+  .watermark { position: fixed; top: 105mm; left: 0; right: 0; text-align: center; font-size: 60pt; color: rgba(200,0,0,.12); transform: rotate(-24deg); letter-spacing: .2em; }
+</style></head>
+<body>
+{% if draft %}<div class="watermark">下書き</div>{% endif %}
+<div style="position: relative">
+  <div class="meta"><table>{% block meta %}{% endblock %}</table></div>
+  <h1 class="doc-title">{% block heading %}{% endblock %}</h1>
+</div>
+<div class="head">
+  <div class="to">
+    <div class="name">{{ customer.name }}　{{ customer.honorific }}</div>
+    {% if customer.contact_person %}<div>{{ customer.contact_person }} 様</div>{% endif %}
+    <p class="lead">{% block lead %}{% endblock %}</p>
+    <table class="info">{% block info %}{% endblock %}</table>
+  </div>
+  <div class="from">
+    <div class="company">{{ company.company_name }}</div>
+    {% if company.postal_code %}〒{{ company.postal_code }}<br>{% endif %}{% if company.address %}{{ company.address }}<br>{% endif %}
+    {% if company.tel %}TEL {{ company.tel }}{% endif %}{% if company.fax %}　FAX {{ company.fax }}{% endif %}{% if company.tel or company.fax %}<br>{% endif %}
+    {% if company.email %}{{ company.email }}<br>{% endif %}
+    {% if company.registration_number %}<div class="reg">登録番号: {{ company.registration_number }}</div>{% endif %}
+    {% if deal.owner %}<div>担当: {{ deal.owner|display_name }}</div>{% endif %}
+  </div>
+</div>
+<div class="amount-box"><span class="label">{% block amount_label %}{% endblock %}</span><span class="value">{{ totals.total|yen }}</span><span class="tax">（税込）</span></div>
+
+<table class="lines">
+  <thead><tr><th class="no">No</th><th>品名・仕様</th><th class="qty">数量</th><th class="unit">単位</th><th class="price">単価</th><th class="amt">金額</th><th class="rate">税率</th></tr></thead>
+  <tbody>
+  {% for ln in lines %}<tr>
+    <td class="c">{{ forloop.counter }}</td>
+    <td>{{ ln.name }}{% if ln.spec %}<div class="spec">{{ ln.spec }}</div>{% endif %}{% if ln.note %}<div class="spec">※{{ ln.note }}</div>{% endif %}</td>
+    <td class="num">{{ ln.quantity|floatformat:"-2" }}</td><td class="c">{{ ln.unit }}</td>
+    <td class="num">{{ ln.unit_price|yen }}</td><td class="num">{{ ln.amount|yen }}</td>
+    <td class="c">{% if ln.tax_rate == 8 %}8%※{% elif ln.tax_rate == 0 %}対象外{% else %}{{ ln.tax_rate }}%{% endif %}</td>
+  </tr>{% endfor %}
+  </tbody>
+</table>
+<table class="totals">
+  <tr><td>小計（税抜）</td><td class="num">{{ totals.subtotal|yen }}</td></tr>
+  {% for b in totals.rows %}{% if b.rate %}
+  <tr><td>{{ b.rate }}%対象 {{ b.base|yen }}</td><td class="num">消費税 {{ b.tax|yen }}</td></tr>
+  {% else %}<tr><td>非課税・対象外</td><td class="num">{{ b.base|yen }}</td></tr>{% endif %}{% endfor %}
+  <tr class="grand"><td>合計（税込）</td><td class="num">{{ totals.total|yen }}</td></tr>
+</table>
+{% for b in totals.rows %}{% if b.rate == 8 %}<p class="note8">※印は軽減税率（8%）対象です。</p>{% endif %}{% endfor %}
+{% block after %}{% endblock %}
+{% if doc.notes %}<div class="box"><h3>備考</h3><div class="pre">{{ doc.notes }}</div></div>{% endif %}
+</body></html>

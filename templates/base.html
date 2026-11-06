@@ -14,8 +14,11 @@
     {% with name=request.resolver_match.url_name %}
     <a href="{% url 'dashboard' %}" {% if name == 'dashboard' %}class="active"{% endif %}>ダッシュボード</a>
     <a href="{% url 'deal_list' %}" {% if name|slice:":4" == 'deal' %}class="active"{% endif %}>案件</a>
+    <a href="{% url 'quote_list' %}" {% if name|slice:":5" == 'quote' %}class="active"{% endif %}>見積</a>
+    <a href="{% url 'invoice_list' %}" {% if name|slice:":7" == 'invoice' or name|slice:":7" == 'payment' %}class="active"{% endif %}>請求・入金</a>
     <a href="{% url 'customer_list' %}" {% if name|slice:":8" == 'customer' %}class="active"{% endif %}>顧客</a>
     <a href="{% url 'item_list' %}" {% if name|slice:":4" == 'item' %}class="active"{% endif %}>品目・原価</a>
+    <a href="{% url 'document_list' %}" {% if name|slice:":8" == 'document' %}class="active"{% endif %}>書類控え</a>
     {% if user.is_staff %}<a href="{% url 'company_settings' %}" {% if name == 'company_settings' or name|slice:":4" == 'user' %}class="active"{% endif %}>設定</a>{% endif %}
     {% endwith %}
   </nav>
