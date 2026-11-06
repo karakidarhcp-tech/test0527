@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}原価表の取り込み{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'item_list' %}">品目・原価マスタ</a> ›</p>
+<h1>原価表（Excel）の取り込み</h1>
+{% if result.errors %}
+<div class="card msg error">
+  <strong>取り込みを中止しました（{{ result.errors|length }}件のエラー）。</strong> 修正してもう一度選んでください。1件も登録されていません。
+  <ul class="errlist">{% for row, msg in result.errors|slice:":50" %}<li>{% if row %}{{ row }}行目: {% endif %}{{ msg }}</li>{% endfor %}</ul>
+  {% if result.errors|length > 50 %}<p>…ほか {{ result.errors|length|add:"-50" }} 件</p>{% endif %}
+</div>
+{% endif %}
+<form method="post" enctype="multipart/form-data" class="card form">{% csrf_token %}
+  {% include "includes/form_fields.html" %}
+  <div class="actions"><button class="btn primary" type="submit">取り込む</button><a class="btn" href="{% url 'item_list' %}">キャンセル</a></div>
+</form>
+<div class="card form">
+  <h2>ファイルの形式</h2>
+  <ul class="help-list">
+    <li>先頭の行（10行目まで）に見出しを付けてください。<strong>「品名」と「原価」は必須</strong>です</li>
+    <li>認識する列名: 品番／分類／品名（名称）／規格（仕様・サイズ）／単位／原価（原価単価・仕入単価・単価）／売価／備考</li>
+    <li>品番があれば品番で、なければ「品名＋規格」で同じ品目を探して上書きします</li>
+    <li>1行でもエラーがあれば何も登録しません（途中まで登録されることはありません）</li>
+  </ul>
+  <a class="btn" href="{% url 'item_template' %}">テンプレート（.xlsx）をダウンロード</a>
+</div>
+{% endblock %}

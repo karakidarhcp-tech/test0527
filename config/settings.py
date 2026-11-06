@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "accounts",
     "deals",
+    "catalog",
 ]
 
 MIDDLEWARE = [
@@ -131,4 +132,6 @@ LOGGING = {
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "root": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO")},
+    # 403/404 などの想定内の応答は記録しない（500 エラーは記録する）
+    "loggers": {"django.request": {"level": "ERROR"}},
 }

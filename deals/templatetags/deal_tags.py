@@ -18,6 +18,19 @@ def yen(value):
 
 
 @register.filter
+def yen_decimal(value):
+    """小数を含む原価単価用（端数がなければ整数表示）"""
+    try:
+        from decimal import Decimal
+        d = Decimal(str(value))
+    except Exception:
+        return "-"
+    if d == d.to_integral_value():
+        return f"¥{int(d):,}"
+    return f"¥{d:,.2f}"
+
+
+@register.filter
 def man_yen(value):
     """グラフ軸用の短い表記（万円/億円）"""
     v = int(value or 0)

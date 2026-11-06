@@ -1,29 +1,52 @@
 {% extends "base.html" %}{% load deal_tags %}
-{% block title %}{{ deal.title }}{% endblock %}
+{% block title %}{{ deal.number }} {{ deal.title }}{% endblock %}
 {% block content %}
-<p class="crumbs"><a href="{% url 'deal_list' %}">案件一覧</a> ›</p>
+<p class="crumbs"><a href="{% url 'deal_list' %}">案件一覧</a> ›{% if deal.parent %} <a href="{{ deal.parent.get_absolute_url }}">{{ deal.parent.number }}</a> ›{% endif %}</p>
 <div class="pagehead">
-  <h1>{{ deal.title }} {% phase_badge deal %}</h1>
+  <h1><span class="mono">{{ deal.number }}</span> {{ deal.title }} {% phase_badge deal %}</h1>
   <div>
     <a class="btn primary" href="{% url 'deal_update' deal.pk %}">編集</a>
+    {% if not deal.parent %}<a class="btn" href="{% url 'deal_create' %}?parent={{ deal.pk }}">＋ 追加工事</a>{% endif %}
     {% if user.is_staff or user == deal.owner or user == deal.created_by %}
     <a class="btn danger" href="{% url 'deal_delete' deal.pk %}">削除</a>
     {% endif %}
   </div>
 </div>
+
+<div class="grid2">
 <div class="card">
+  <h2>基本情報</h2>
   <dl class="dl">
-    <dt>顧客</dt><dd><a href="{{ deal.customer.get_absolute_url }}">{{ deal.customer.name }}</a></dd>
+    <dt>顧客</dt><dd><a href="{{ deal.customer.get_absolute_url }}">{{ deal.customer.name_with_honorific }}</a></dd>
     <dt>担当者</dt><dd>{{ deal.owner|display_name }}</dd>
-    <dt>見込み金額</dt><dd>{{ deal.amount|yen }}</dd>
-    <dt>確度</dt><dd>{{ deal.probability }}%（加重 {{ deal.weighted_amount|yen }}）</dd>
+    {% if deal.parent %}<dt>元案件</dt><dd><a href="{{ deal.parent.get_absolute_url }}">{{ deal.parent }}</a></dd>{% endif %}
+    {% if deal.site_address %}<dt>現場住所</dt><dd>{{ deal.site_address }}</dd>{% endif %}
+    <dt>着工〜完工</dt><dd>{{ deal.start_date|date:"Y/m/d"|default:"未定" }} 〜 {{ deal.completion_date|date:"Y/m/d"|default:"未定" }}</dd>
     <dt>受注予定日</dt><dd class="{% if deal.is_overdue %}overdue{% endif %}">{{ deal.expected_close_date|date:"Y年n月j日"|default:"未設定" }}{% if deal.is_overdue %}（期限切れ）{% endif %}</dd>
     {% if deal.closed_date %}<dt>クローズ日</dt><dd>{{ deal.closed_date|date:"Y年n月j日" }}</dd>{% endif %}
     <dt>内容・メモ</dt><dd class="pre">{{ deal.description|default:"-" }}</dd>
     <dt>作成</dt><dd class="muted">{{ deal.created_at|date:"Y/m/d H:i" }}（{{ deal.created_by|display_name }}）</dd>
-    <dt>最終更新</dt><dd class="muted">{{ deal.updated_at|date:"Y/m/d H:i" }}</dd>
   </dl>
 </div>
+<div class="card">
+  <h2>金額</h2>
+  <dl class="dl">
+    <dt>見込み金額</dt><dd>{{ deal.amount|yen }}（確度 {{ deal.probability }}%）</dd>
+    <dt>確定金額(税抜)</dt><dd>{% if deal.contract_amount is not None %}<strong>{{ deal.contract_amount|yen }}</strong>{% else %}<span class="muted">未確定（受注時に見積から設定）</span>{% endif %}</dd>
+    <dt>計上月</dt><dd>{{ deal.accounting_month|date:"Y年n月"|default:"未設定" }}</dd>
+  </dl>
+  {% block deal_money_extra %}{% endblock %}
+</div>
+</div>
+
+{% if deal.children.exists %}
+<section class="card">
+  <h2>追加工事</h2>
+  {% include "deals/_mini_list.html" with deals=deal.children.all empty="" %}
+</section>
+{% endif %}
+
+{% for section in deal_sections %}{% include section %}{% endfor %}
 
 <section class="card">
   <h2>活動履歴</h2>

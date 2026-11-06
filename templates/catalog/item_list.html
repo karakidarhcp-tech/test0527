@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% load deal_tags %}
+{% block title %}品目・原価マスタ{% endblock %}
+{% block content %}
+<div class="pagehead">
+  <h1>品目・原価マスタ</h1>
+  <div>
+    <a class="btn" href="{% url 'item_import' %}">Excel 取り込み</a>
+    <a class="btn primary" href="{% url 'item_create' %}">＋ 品目を登録</a>
+  </div>
+</div>
+<form class="card filters" method="get">
+  <div class="field"><label for="q">キーワード</label><input id="q" type="search" name="q" value="{{ request.GET.q }}" placeholder="品名・品番・規格"></div>
+  <div class="field"><label for="category">分類</label>
+    <select id="category" name="category"><option value="">すべて</option>
+    {% for v, l in categories %}<option value="{{ v }}" {% if request.GET.category == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div class="field checkbox"><input id="inactive" type="checkbox" name="inactive" value="1" {% if request.GET.inactive == "1" %}checked{% endif %}><label for="inactive">使用停止の品目も表示</label></div>
+  <div class="filter-actions"><button class="btn primary" type="submit">検索</button><a class="btn" href="{% url 'item_list' %}">クリア</a></div>
+</form>
+<p class="muted">{{ paginator.count }}件 ・ 売価が空欄の品目は 原価 ÷ (1 − {{ settings.target_margin }}%) を{{ settings.get_price_rounding_display }}で切り上げた参考売価を表示しています</p>
+<div class="card table-wrap">
+<table class="table">
+  <thead><tr><th>品番</th><th>分類</th><th>品名</th><th>規格・仕様</th><th>単位</th><th class="num">原価単価</th><th class="num">売価</th></tr></thead>
+  <tbody>
+  {% for i in object_list %}
+  <tr class="{% if not i.is_active %}inactive{% endif %}">
+    <td class="mono nowrap">{{ i.code|default:"-" }}</td>
+    <td class="nowrap">{{ i.get_category_display }}</td>
+    <td><a href="{% url 'item_update' i.pk %}">{{ i.name }}</a></td>
+    <td>{{ i.spec|default:"-" }}</td>
+    <td>{{ i.unit }}</td>
+    <td class="num">{{ i.cost|yen_decimal }}</td>
+    <td class="num">{% if i.price is not None %}{{ i.price|yen }}{% else %}<span class="muted" title="参考売価（自動計算）">{{ i.calc_price|yen }}</span>{% endif %}</td>
+  </tr>
+  {% empty %}
+  <tr><td colspan="7" class="muted center">品目がありません。<a href="{% url 'item_import' %}">Excel の原価表を取り込む</a>か、個別に登録してください。</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% include "includes/pagination.html" %}
+{% endblock %}

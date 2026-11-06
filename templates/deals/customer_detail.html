@@ -12,10 +12,12 @@
 </div>
 <div class="card">
   <dl class="dl">
+    <dt>宛名</dt><dd>{{ customer.name_with_honorific }}</dd>
+    <dt>支払条件</dt><dd>{{ customer.payment_terms_display }}</dd>
     <dt>担当者名</dt><dd>{{ customer.contact_person|default:"-" }}</dd>
     <dt>メール</dt><dd>{% if customer.email %}<a href="mailto:{{ customer.email }}">{{ customer.email }}</a>{% else %}-{% endif %}</dd>
     <dt>電話番号</dt><dd>{{ customer.phone|default:"-" }}</dd>
-    <dt>住所</dt><dd>{{ customer.address|default:"-" }}</dd>
+    <dt>住所</dt><dd>{% if customer.postal_code %}〒{{ customer.postal_code }} {% endif %}{{ customer.address|default:"-" }}</dd>
     <dt>備考</dt><dd class="pre">{{ customer.notes|default:"-" }}</dd>
   </dl>
 </div>
@@ -23,10 +25,11 @@
   <h2>案件（{{ deals|length }}件）</h2>
   {% if deals %}
   <table class="table compact">
-    <thead><tr><th>案件名</th><th>担当者</th><th>フェーズ</th><th class="num">金額</th><th>受注予定日</th></tr></thead>
+    <thead><tr><th>案件番号</th><th>案件名</th><th>担当者</th><th>フェーズ</th><th class="num">金額</th><th>受注予定日</th></tr></thead>
     <tbody>
     {% for d in deals %}
     <tr>
+      <td class="mono nowrap"><a href="{{ d.get_absolute_url }}">{{ d.number }}</a></td>
       <td><a href="{{ d.get_absolute_url }}">{{ d.title }}</a></td>
       <td>{{ d.owner|display_name }}</td>
       <td>{% phase_badge d %}</td>

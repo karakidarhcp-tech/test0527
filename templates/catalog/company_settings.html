@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}会社設定{% endblock %}
+{% block content %}
+<div class="pagehead"><h1>会社設定</h1><a class="btn" href="{% url 'user_list' %}">ユーザー管理</a></div>
+<p class="muted">見積書・請求書に印字される会社情報と、見積・請求の既定値です。</p>
+<form method="post" class="card form">{% csrf_token %}
+  {% include "includes/form_fields.html" %}
+  <div class="actions"><button class="btn primary" type="submit">保存</button></div>
+</form>
+{% endblock %}

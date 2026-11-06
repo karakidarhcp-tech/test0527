@@ -29,13 +29,22 @@ class DealForm(forms.ModelForm):
     class Meta:
         model = Deal
         fields = [
-            "title", "customer", "owner", "phase", "amount",
-            "probability", "expected_close_date", "description",
+            "title", "customer", "owner", "phase", "amount", "probability", "expected_close_date",
+            "contract_amount", "accounting_month", "start_date", "completion_date", "site_address",
+            "description",
         ]
         widgets = {
             "expected_close_date": DateInput(),
+            "start_date": DateInput(),
+            "completion_date": DateInput(),
+            "accounting_month": forms.DateInput(attrs={"type": "month"}, format="%Y-%m"),
             "description": forms.Textarea(attrs={"rows": 5}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["accounting_month"].input_formats = ["%Y-%m", "%Y-%m-%d"]
+        self.fields["accounting_month"].help_text = "受注した売上を計上する月"
 
     def clean_probability(self):
         value = self.cleaned_data["probability"]
@@ -47,15 +56,25 @@ class DealForm(forms.ModelForm):
 class CustomerForm(forms.ModelForm):
     class Meta:
         model = Customer
-        fields = ["name", "contact_person", "email", "phone", "address", "notes"]
+        fields = ["name", "honorific", "contact_person", "email", "phone", "postal_code", "address",
+                  "closing_day", "payment_month_offset", "payment_day", "notes"]
+
+    def clean(self):
+        cd = super().clean()
+        for f in ("closing_day", "payment_day"):
+            v = cd.get(f)
+            if v is not None and v > 28:
+                self.add_error(f, "1〜28、または末日の場合は 0 を入力してください。")
+        return cd
         widgets = {"notes": forms.Textarea(attrs={"rows": 4})}
 
 
 class DealSearchForm(forms.Form):
     q = forms.CharField(label="キーワード", required=False,
-                        widget=forms.TextInput(attrs={"placeholder": "案件名・顧客名・メモ"}))
+                        widget=forms.TextInput(attrs={"placeholder": "案件番号・案件名・顧客名"}))
     phase = forms.ChoiceField(label="フェーズ", required=False,
-                              choices=[("", "すべて"), ("open", "進行中のみ")] + list(Deal.Phase.choices))
+                              choices=[("", "すべて"), ("open", "見積・商談中"), ("won_all", "受注・完工")]
+                              + list(Deal.Phase.choices))
     owner = UserChoiceField(label="担当者", required=False, empty_label="すべて",
                             queryset=User.objects.order_by("username"))
     customer = forms.ModelChoiceField(label="顧客", required=False, empty_label="すべて",
@@ -97,7 +116,9 @@ def _fmt(name, value):
         return Deal.Phase(value).label
     if name == "owner":
         return display_name(value)
-    if name == "amount":
+    if name == "accounting_month":
+        return value.strftime("%Y年%-m月")
+    if name in ("amount", "contract_amount"):
         return f"¥{int(value):,}"
     if name == "probability":
         return f"{value}%"

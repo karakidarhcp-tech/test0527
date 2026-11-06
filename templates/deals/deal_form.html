@@ -2,7 +2,9 @@
 {% block title %}{% if object %}案件の編集{% else %}案件の登録{% endif %}{% endblock %}
 {% block content %}
 <p class="crumbs"><a href="{% url 'deal_list' %}">案件一覧</a> ›{% if object %} <a href="{{ object.get_absolute_url }}">{{ object.title }}</a> ›{% endif %}</p>
-<h1>{% if object %}案件の編集{% else %}案件の登録{% endif %}</h1>
+<h1>{% if object %}案件の編集 <span class="mono muted">{{ object.number }}</span>{% elif parent %}追加工事の登録{% else %}案件の登録{% endif %}</h1>
+{% if parent %}<p class="msg">元案件 <strong>{{ parent.number }} {{ parent.title }}</strong> の追加工事として登録します。案件番号は「{{ parent.number }}-A◯」になります。</p>
+{% elif not object %}<p class="muted">案件番号は保存時に自動で振られます（例: 2611001）。</p>{% endif %}
 <form method="post" class="card form">{% csrf_token %}
   {% include "includes/form_fields.html" %}
   <p class="help">顧客が未登録の場合は <a href="{% url 'customer_create' %}" target="_blank">顧客を登録</a> してください。フェーズを「受注」「失注」にすると確度とクローズ日は自動設定されます。</p>

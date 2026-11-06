@@ -174,3 +174,11 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--primary); o
 .tl-body { margin-top: 2px; }
 .tl-changed .tl-body { color: var(--muted); font-size: 13px; }
 @media (max-width: 720px) { .mchart-x span:nth-child(even) { visibility: hidden; } }
+
+/* ---- 番号・共通 ---- */
+.mono { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+h1 .mono { font-weight: 600; }
+.phase-completed, .phase-bg-completed { background: #0f766e; }
+.errlist { margin: 8px 0 0; padding-left: 20px; }
+.help-list { padding-left: 20px; color: var(--muted); }
+.help-list li { margin-bottom: 4px; }

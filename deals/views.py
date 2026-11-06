@@ -64,7 +64,7 @@ def dashboard(request):
     pipeline_total = totals["pipeline"] or 0
     weighted_total = (totals["weighted"] or 0) // 100
 
-    won_this_month = Deal.objects.filter(phase=Deal.Phase.WON, closed_date__gte=month_start, closed_date__lt=next_month)
+    won_this_month = Deal.objects.filter(phase__in=Deal.WON_PHASES, closed_date__gte=month_start, closed_date__lt=next_month)
     closed_this_month = Deal.objects.filter(phase__in=Deal.CLOSED_PHASES, closed_date__gte=month_start,
                                             closed_date__lt=next_month)
     won_count = won_this_month.count()
@@ -75,7 +75,7 @@ def dashboard(request):
     for _ in range(11):
         first_month = (first_month - timedelta(days=1)).replace(day=1)
     monthly = {
-        r["m"]: r for r in Deal.objects.filter(phase=Deal.Phase.WON, closed_date__gte=first_month)
+        r["m"]: r for r in Deal.objects.filter(phase__in=Deal.WON_PHASES, closed_date__gte=first_month)
         .annotate(m=TruncMonth("closed_date")).values("m").annotate(total=Sum("amount"), n=Count("id"))
     }
     months, m = [], first_month
@@ -120,10 +120,12 @@ def filter_deals(params):
     if form.is_valid():
         d = form.cleaned_data
         if d["q"]:
-            qs = qs.filter(Q(title__icontains=d["q"]) | Q(customer__name__icontains=d["q"])
-                           | Q(description__icontains=d["q"]))
+            qs = qs.filter(Q(number__icontains=d["q"]) | Q(title__icontains=d["q"])
+                           | Q(customer__name__icontains=d["q"]) | Q(description__icontains=d["q"]))
         if d["phase"] == "open":
             qs = qs.filter(phase__in=Deal.OPEN_PHASES)
+        elif d["phase"] == "won_all":
+            qs = qs.filter(phase__in=Deal.WON_PHASES)
         elif d["phase"]:
             qs = qs.filter(phase=d["phase"])
         if d["owner"]:
@@ -162,11 +164,11 @@ def deal_export_csv(request):
     response["Content-Disposition"] = 'attachment; filename="deals.csv"'
     response.write("﻿")  # Excel用BOM
     w = csv.writer(response)
-    w.writerow(["ID", "案件名", "顧客", "担当者", "フェーズ", "見込み金額", "確度(%)", "加重金額",
+    w.writerow(["案件番号", "案件名", "顧客", "担当者", "フェーズ", "見込み金額", "確度(%)", "加重金額",
                 "受注予定日", "クローズ日", "更新日時"])
     for d in qs:
         w.writerow([
-            d.pk, d.title, d.customer.name,
+            d.number, d.title, d.customer.name,
             display_name(d.owner) if d.owner else "",
             d.get_phase_display(), d.amount, d.probability, d.weighted_amount,
             d.expected_close_date or "", d.closed_date or "",
@@ -217,14 +219,30 @@ class DealCreateView(LoginRequiredMixin, CreateView):
     model = Deal
     form_class = DealForm
 
+    def dispatch(self, request, *args, **kwargs):
+        self.parent = None
+        if request.GET.get("parent"):
+            self.parent = get_object_or_404(Deal, pk=request.GET["parent"])
+        return super().dispatch(request, *args, **kwargs)
+
     def get_initial(self):
         initial = {"owner": self.request.user}
-        if "customer" in self.request.GET:
+        if self.parent:
+            p = self.parent
+            initial.update(customer=p.customer, title=f"{p.title} 追加工事", site_address=p.site_address,
+                           phase=Deal.Phase.ESTIMATE, owner=p.owner or self.request.user)
+        elif "customer" in self.request.GET:
             initial["customer"] = self.request.GET["customer"]
         return initial
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["parent"] = self.parent
+        return ctx
+
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+        form.instance.parent = self.parent
         response = super().form_valid(form)
         DealActivity.objects.create(deal=self.object, user=self.request.user,
                                     kind=DealActivity.Kind.CREATED, body="案件を作成")

@@ -15,7 +15,8 @@
     <a href="{% url 'dashboard' %}" {% if name == 'dashboard' %}class="active"{% endif %}>ダッシュボード</a>
     <a href="{% url 'deal_list' %}" {% if name|slice:":4" == 'deal' %}class="active"{% endif %}>案件</a>
     <a href="{% url 'customer_list' %}" {% if name|slice:":8" == 'customer' %}class="active"{% endif %}>顧客</a>
-    {% if user.is_staff %}<a href="{% url 'user_list' %}" {% if name|slice:":4" == 'user' %}class="active"{% endif %}>ユーザー管理</a>{% endif %}
+    <a href="{% url 'item_list' %}" {% if name|slice:":4" == 'item' %}class="active"{% endif %}>品目・原価</a>
+    {% if user.is_staff %}<a href="{% url 'company_settings' %}" {% if name == 'company_settings' or name|slice:":4" == 'user' %}class="active"{% endif %}>設定</a>{% endif %}
     {% endwith %}
   </nav>
   <div class="usermenu">

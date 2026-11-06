@@ -5,7 +5,7 @@
   <tbody>
   {% for d in deals %}
   <tr>
-    <td><a href="{{ d.get_absolute_url }}">{{ d.title }}</a></td>
+    <td><a href="{{ d.get_absolute_url }}"><span class="mono muted">{{ d.number }}</span> {{ d.title }}</a></td>
     <td>{{ d.customer.name }}</td>
     <td>{% phase_badge d %}</td>
     <td class="num">{{ d.amount|yen }}</td>

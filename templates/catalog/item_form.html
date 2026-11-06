@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}品目の編集{% else %}品目の登録{% endif %}{% endblock %}
+{% block content %}
+<p class="crumbs"><a href="{% url 'item_list' %}">品目・原価マスタ</a> ›</p>
+<h1>{% if object %}品目の編集{% else %}品目の登録{% endif %}</h1>
+<form method="post" class="card form">{% csrf_token %}
+  {% include "includes/form_fields.html" %}
+  {% if object %}<p class="help">使わなくなった品目は削除せず「使用中」のチェックを外してください（過去の見積の記録を残すため）。</p>{% endif %}
+  <div class="actions"><button class="btn primary" type="submit">保存</button><a class="btn" href="{% url 'item_list' %}">キャンセル</a></div>
+</form>
+{% endblock %}
